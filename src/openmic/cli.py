@@ -65,6 +65,8 @@ def main() -> None:
         f"\nResult: approved={result.approved}, score={result.score:.1f}, "
         f"revisions={result.revision_count}"
     )
+    if result.validation_issues:
+        print("本地脚本检查未通过：" + "；".join(result.validation_issues))
 
 
 if __name__ == "__main__":

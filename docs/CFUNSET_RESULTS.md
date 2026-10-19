@@ -38,4 +38,6 @@
 
 R1 指出一个文化场景误区：校园住校生赶早八通常从宿舍步行或骑车去教学楼，旧生成稿却可能把早八与地铁直接相连。**上述十条实验是在修正前生成的，评分和自动指标保持原样。**修正后的共享提示要求导演、写作和质检 Agent 优先采用校园内通勤；若确实涉及早八地铁，先交代走读或跨校区等原因。早八主题的检索关联词也去掉了“公交”，加入“教学楼、步行、骑车”。这属于针对反馈的下一版改进，若要测量改进效果必须用新输出目录重新运行，不能把旧实验冒充为新提示的结果。
 
+进一步的 R1 逐稿分析和公开资料核对见 [HUMOR_QUALITY_RUBRIC.md](HUMOR_QUALITY_RUBRIC.md)。写作、质检、检索舞台适配和本地格式校验均已改进，但尚未进行新的付费生成；以上所有数值仍只代表首轮旧协议。
+
 在桌面仓库使用 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl` 可重算此表。人工评分合并为 `ratings.csv` 后，再按 `docs/CFUNSET_CONTENT.md` 运行 `summarize`。所有数值都来自已保存的十条轨迹；本报告没有复制 CFunSet 原文或生成脚本。

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from openmic.agents import AGENT_SPECS
 from openmic.humor_data import CFunRetriever, HumorExample
 from openmic.humor_generation import topic_expansion_prompt, writer_prompt
+from openmic.humor_evaluation import script_contract_issues
 from openmic.models import AgentMessage, ProjectRequest, WorkflowResult
 
 
@@ -147,10 +148,11 @@ def _system_messages(
         "PerformanceCoach": AGENT_SPECS["PerformanceCoach"].system_prompt
         + context
         + (
-            "\n保留脚本文字并插入 [PAUSE=0.8]、[PAUSE=2.0]、[EMPHASIS]、"
+            "\n保留 JokeWriter 的原文与 [SETUP]、[PUNCHLINE]、[CALLBACK] 结构标签，"
+            "只插入 [PAUSE=0.8]、[PAUSE=2.0]、[EMPHASIS]、"
             "[EMOTION=...] 等可解析标记。最终内容必须严格放在 <SCRIPT> 和 "
             "</SCRIPT> 之间。标签外不得写开场确认、解释、总结、建议或邀请用户调整；"
-            "标签内只允许可被朗读的脚本文字与上述表演标记。"
+            "标签内只允许可被朗读的脚本文字、原有结构标签与上述表演标记。"
         ),
         "QualityController": AGENT_SPECS["QualityController"].system_prompt
         + context
@@ -158,6 +160,11 @@ def _system_messages(
             "\n分别给出 HUMOR_SCORE、CULTURE_SCORE、STRUCTURE_SCORE（0-10）。"
             f"逐项检查至少 {request.duration_minutes + 2} 组铺垫-包袱、"
             "中段和结尾两次不同含义的回调、口语自然度与受众文化适配。"
+            "幽默分达到8须有多个具体而意外的揭底；若主要是换词重复、泛泛比喻、"
+            "解释笑点或为凑数而堆包袱，幽默分不高于6并要求返工。"
+            "文化分达到8须场景因果可信、中文校园细节自然；"
+            "早八与地铁无合理缘由、过时网络梗或不适合校园的成人题材应要求返工。"
+            "脚本含策划语或丢失 [SETUP]、[PUNCHLINE]、[CALLBACK] 标签也必须返工。"
             "结构缺项或有明显安全问题必须要求修改；其余情况下平均分达到 7.0 才通过。"
             "最后一行必须且只能是 "
             "`DECISION: APPROVED` 或 `DECISION: REVISION_REQUIRED`。控制在350字内。"
@@ -269,11 +276,19 @@ class AutoGenV02Workflow:
             if message.agent == "QualityController"
         ]
         final_qc = qc_messages[-1] if qc_messages else ""
+        writer_script = next(
+            (message.content for message in reversed(transcript) if message.agent == "JokeWriter"),
+            "",
+        )
+        validation_issues = tuple(
+            script_contract_issues(writer_script, request.duration_minutes, request.audience)
+        )
         return WorkflowResult(
-            approved="DECISION: APPROVED" in final_qc,
+            approved="DECISION: APPROVED" in final_qc and not validation_issues,
             score=_extract_score(final_qc),
             messages=transcript,
             revision_count=router.revision_count,
+            validation_issues=validation_issues,
         )
 
 

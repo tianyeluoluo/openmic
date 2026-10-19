@@ -12,7 +12,9 @@ from statistics import mean
 from typing import Dict, List
 
 from openmic.humor_data import CFunRetriever, download_cfunset, prepare_cfunset
-from openmic.humor_evaluation import RATING_DIMENSIONS, aggregate_ratings, analyze_structure
+from openmic.humor_evaluation import (
+    RATING_DIMENSIONS, aggregate_ratings, analyze_structure, script_contract_issues,
+)
 from openmic.models import ProjectRequest
 
 
@@ -23,6 +25,7 @@ TOPICS = (
     "地铁通勤",
     "手机电量焦虑",
 )
+GENERATION_PROTOCOL = "r1-feedback-v2"
 
 
 def _writer_script(messages: list) -> str:
@@ -50,6 +53,7 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
         "topics": list(TOPICS),
         "duration_minutes": 3,
         "blind_shuffle_seed": seed,
+        "generation_protocol": GENERATION_PROTOCOL,
     }
     manifest_path = output_dir / "manifest.json"
     trace_path = output_dir / "traces.jsonl"
@@ -91,11 +95,20 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
                     len(extract_qc_scores(final_qc)) == 3
                     and any(decision in final_qc for decision in ("DECISION: APPROVED", "DECISION: REVISION_REQUIRED"))
                 )
-                if script.strip() and valid_qc:
+                issues = script_contract_issues(
+                    script, request.duration_minutes, request.audience
+                ) if script.strip() else ["脚本为空"]
+                if not result.approved and not issues:
+                    issues.append("质检未批准")
+                if script.strip() and valid_qc and result.approved and not issues:
                     break
                 if attempt == 3:
-                    raise RuntimeError(f"{topic} / {condition} 的脚本或质检响应不完整；未写入轨迹，可续跑")
-                print(f"{topic} / {condition} 的脚本或质检响应不完整，重试 {attempt}/2")
+                    raise RuntimeError(
+                        f"{topic} / {condition} 的脚本、结构或质检不完整"
+                        f"（{'; '.join(issues)}）；未写入轨迹，可续跑"
+                    )
+                print(f"{topic} / {condition} 未通过脚本与质检检查："
+                      f"{'; '.join(issues) or '质检响应不完整'}，重试 {attempt}/2")
             row = {
                 "topic": topic,
                 "condition": condition,

@@ -9,7 +9,7 @@ from unittest.mock import patch
 from openmic.autogen_v02 import _system_messages
 from openmic.humor_benchmark import TOPICS, compare, summarize_automatic
 from openmic.humor_data import CFunRetriever, derive_example, iter_cfunset, prepare_cfunset
-from openmic.humor_evaluation import aggregate_ratings, analyze_structure
+from openmic.humor_evaluation import aggregate_ratings, analyze_structure, script_contract_issues
 from openmic.models import AgentMessage, ProjectRequest
 
 
@@ -67,6 +67,7 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertIn("目标 1062-1438 个汉字", enriched["JokeWriter"])
         self.assertIn("CFunSet", enriched["JokeWriter"])
         self.assertNotIn("CFunSet", baseline["JokeWriter"])
+        self.assertIn("保留 JokeWriter 的原文与 [SETUP]", enriched["PerformanceCoach"])
 
     def test_college_prompts_check_early_class_setting(self) -> None:
         prompts = _system_messages(ProjectRequest(topic="赶早八"))
@@ -90,6 +91,37 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertEqual(metrics["callback_count"], 2)
         self.assertEqual(metrics["delayed_beats"], 2)
         self.assertGreater(metrics["structure_proxy_0_10"], 4)
+
+    def test_script_contract_catches_observed_format_and_setting_failures(self) -> None:
+        parts = []
+        for number in range(5):
+            parts.append(
+                f"[SETUP]\n我在宿舍等第{number}次闹钟，室友都起来了，我还以为时间充足。\n"
+                f"[PUNCHLINE]\n结果闹钟叫醒的是全宿舍，只有我还在睡。\n"
+            )
+            if number in (1, 4):
+                parts.append("[CALLBACK]\n室友说闹钟又替我上课了。\n")
+        valid = "".join(parts)
+        self.assertEqual(script_contract_issues(valid, 3), [])
+        self.assertTrue(script_contract_issues("<SCRIPT>早八的地铁人少。</SCRIPT>", 3))
+        mismatch = script_contract_issues(valid + "早八赶地铁。", 3)
+        self.assertTrue(any("地铁" in issue for issue in mismatch))
+        self.assertFalse(any("地铁" in issue for issue in script_contract_issues(
+            valid + "我住在校外，走读赶早八要坐地铁。", 3
+        )))
+
+    def test_retriever_skips_unsuitable_stage_references(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            index = Path(folder) / "index.jsonl"
+            items = [
+                {"id": "safe", "task": "joke_continuation", "setup": "我在食堂排队",
+                 "punchline": "轮到我的时候菜已经卖完了", "split": "train"},
+                {"id": "adult", "task": "joke_continuation", "setup": "我在地铁上",
+                 "punchline": "有人说要去开房", "split": "train"},
+            ]
+            index.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in items) + "\n", encoding="utf-8")
+            retriever = CFunRetriever(index)
+            self.assertEqual([item.id for item in retriever.examples], ["safe"])
 
     def test_human_summary_reports_mean_and_variance(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
@@ -120,7 +152,12 @@ class HumorGenerationTests(unittest.TestCase):
                 fail_once["active"] = False
                 return SimpleNamespace(
                     messages=[
-                        AgentMessage("JokeWriter", "[SETUP]铺垫[PUNCHLINE]包袱"),
+                        AgentMessage("JokeWriter", "".join(
+                            f"[SETUP]\n食堂排队时我看见前面还有很多人，大家都在等饭。\n"
+                            f"[PUNCHLINE]\n等到第{i}次才发现，饭在排我。\n"
+                            + ("[CALLBACK]\n饭又在排我。\n" if i in (1, 4) else "")
+                            for i in range(5)
+                        )),
                         AgentMessage("QualityController", qc),
                     ],
                     approved=True,

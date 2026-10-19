@@ -129,6 +129,8 @@ def main() -> None:
         status_col.metric("质检结果", "通过" if result.approved else "未通过")
         score_col.metric("平均分", f"{result.score:.2f}")
         revision_col.metric("返工次数", result.revision_count)
+        if result.validation_issues:
+            st.warning("本地脚本检查未通过：" + "；".join(result.validation_issues))
 
         st.subheader("Agent 协作轨迹")
         for item in result.messages:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 
 VALID_STYLES = {"observational", "self_deprecating", "roast"}
@@ -47,4 +47,5 @@ class WorkflowResult:
     score: float
     messages: List[AgentMessage]
     revision_count: int
+    validation_issues: Tuple[str, ...] = ()
 

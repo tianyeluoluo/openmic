@@ -60,6 +60,26 @@ def analyze_structure(script: str, duration_minutes: int) -> Dict[str, object]:
     }
 
 
+def script_contract_issues(script: str, duration_minutes: int, audience: str = "大学生") -> List[str]:
+    """Catch format and setting failures that a model QC approval may miss."""
+    metrics = analyze_structure(script, duration_minutes)
+    issues = []
+    if metrics["paired_beats"] < duration_minutes + 2:
+        issues.append("铺垫-包袱标签组数不足")
+    if metrics["delayed_beats"] < min(3, duration_minutes + 2):
+        issues.append("延时铺垫不足")
+    if metrics["callback_count"] < 2 or not metrics["spaced_callbacks"]:
+        issues.append("缺少相隔足够距离的双回调标签")
+    if (
+        "大学生" in audience
+        and "早八" in script
+        and "地铁" in script
+        and not re.search(r"走读|跨校区|住在校外|住校外|校外租|从家里", script)
+    ):
+        issues.append("早八与地铁直接相连，缺少走读或跨校区情境")
+    return issues
+
+
 def aggregate_ratings(csv_path: Path, blind_key: Mapping[str, str]) -> Dict[str, object]:
     """Summarize 1-5 blinded human ratings by experimental condition."""
     values: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))

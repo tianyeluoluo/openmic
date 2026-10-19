@@ -28,6 +28,7 @@ _UNSUITABLE = re.compile(
     r"他妈|妈的|卧槽|傻逼|屎|撒尿|小便|嫖|强奸|做爱|充气|短裙|胖胖|鼻孔|危险|https?://|www\.",
     re.I,
 )
+_STAGE_UNSUITABLE = re.compile(r"开房|华子|香烟|抽烟|约炮|偷情", re.I)
 _TOPIC_ASSOCIATIONS = {
     "网购": ("快递", "购物", "退货", "物流", "包裹"),
     "食堂": ("打饭", "排队", "饭菜", "餐盘", "窗口"),
@@ -256,7 +257,8 @@ class CFunRetriever:
         with path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 item = HumorExample(**json.loads(line))
-                if item.split == "train":
+                body_text = re.sub(r"^主题：[^。]+。", "", item.setup) + item.punchline
+                if item.split == "train" and not _STAGE_UNSUITABLE.search(body_text):
                     self.examples.append(item)
         if not self.examples:
             raise ValueError("CFunSet index has no training examples")
