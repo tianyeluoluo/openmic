@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" data-revision="draft-2">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMic · Midterm Review</title>
+<style>
+/* === BASE: fixed 1920 × 1080 stage === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* === THEME: white background, default system fonts, minimal decoration === */
+:root { --stage-bg:#f1f3f5; --slide-bg:#fff; --ink:#202b38; --muted:#66717e; --blue:#2869b0; --line:#d7e0e8; }
+* { box-sizing:border-box; }
+body { color:var(--ink); font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif; }
+h1,h2,h3,p { margin:0; }
+.slide { padding:84px 110px; }
+h1 { font-size:112px; font-weight:650; letter-spacing:-3px; }
+h2 { font-size:58px; line-height:1.3; font-weight:600; }
+.eyebrow { font-size:26px; color:var(--muted); margin-bottom:25px; }
+.subtitle { font-size:38px; margin-top:24px; color:var(--muted); }
+footer { position:absolute; bottom:47px; left:110px; right:110px; display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:23px; }
+svg { display:block; width:100%; overflow:hidden; font-family:inherit; }
+.diagram { position:absolute; left:110px; top:295px; width:1700px; height:625px; }
+.box { fill:#fff; stroke:#c8d5e2; stroke-width:2; }
+.tint { fill:#f3f7fc; stroke:#b9cde2; stroke-width:2; }
+.link { stroke:#567190; stroke-width:3; fill:none; }
+svg text { fill:var(--ink); text-anchor:middle; dominant-baseline:middle; }
+svg .major { font-size:30px; font-weight:600; }
+svg .small { font-size:25px; fill:var(--muted); }
+svg .english { font-size:21px; fill:var(--muted); }
+svg .accent { fill:var(--blue); }
+.title-copy { margin-top:100px; }
+.title-flow { margin-top:90px; width:1700px; height:230px; }
+.names { font-size:28px; color:var(--muted); margin-top:75px; }
+/* === TODO: leave unmerged team sections empty === */
+.placeholder { position:absolute; left:110px; right:110px; top:310px; height:570px; border:2px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:25px; }
+.todo { font-size:80px; color:#aab5c1; font-weight:500; }
+.placeholder p { font-size:32px; color:var(--muted); }
+.placeholder .hint { font-size:26px; color:#8793a0; }
+/* === CONTROLS: outside the slide canvas === */
+.deck-controls { display:flex; gap:8px; align-items:center; background:#ffffffed; padding:7px 12px; border:1px solid #d7e0e8; border-radius:6px; }
+button { font:inherit; cursor:pointer; background:white; color:#263a51; border:1px solid #d7e0e8; border-radius:4px; padding:6px 12px; }
+button:hover { background:#edf3fa; }
+button:disabled { opacity:.4; cursor:default; }
+button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#count { font-size:14px; min-width:48px; text-align:center; }
+.edit-hotzone { position:fixed; top:0; left:0; width:85px; height:70px; z-index:1001; }
+.edit-toggle { position:fixed; top:14px; left:14px; z-index:1002; opacity:0; pointer-events:none; }
+.edit-toggle.show,.edit-toggle.active { opacity:1; pointer-events:auto; }
+body.editing [data-edit] { outline:2px dashed #a6bfdc; outline-offset:6px; }
+.edit-help { position:fixed; top:15px; left:130px; color:#526577; background:#fff; padding:8px; font-size:14px; z-index:1002; display:none; }
+body.editing .edit-help { display:block; }
+@page { size:1920px 1080px; margin:0; }
+@media print {
+ .edit-hotzone,.edit-toggle,.edit-help { display:none!important; }
+ [data-edit] { outline:none!important; }
+ * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+</style>
+</head>
+<body>
+<div class="deck-viewport"><main class="deck-stage" id="deckStage">
+<!-- === COVER === -->
+<section class="slide active" aria-label="OpenMic Midterm Review">
+<div class="title-copy"><p class="eyebrow" data-edit>Cognitive Reasoning · Midterm Review</p><h1 data-edit>OpenMic</h1><p class="subtitle" data-edit>From an everyday topic to Chinese stand-up comedy</p></div>
+<svg class="title-flow" viewBox="0 0 1700 230" role="img" aria-label="An everyday topic passes through five agents to a script and then to speech">
+<defs><marker id="arrow-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#567190"/></marker></defs>
+<rect x="0" y="25" width="320" height="175" rx="5" class="box"/><text x="160" y="100" class="major">Everyday topic</text><text x="160" y="150" class="small">Online shopping</text>
+<path d="M340 112 H435" class="link" marker-end="url(#arrow-1)"/>
+<rect x="455" y="25" width="330" height="175" rx="5" class="tint"/><text x="620" y="100" class="major">Five agents</text><text x="620" y="150" class="small">Plan · Write · Review</text>
+<path d="M805 112 H900" class="link" marker-end="url(#arrow-1)"/>
+<rect x="920" y="25" width="300" height="175" rx="5" class="box"/><text x="1070" y="100" class="major">Comedy script</text><text x="1070" y="150" class="small">Text + delivery cues</text>
+<path d="M1240 112 H1335" class="link" marker-end="url(#arrow-1)"/>
+<rect x="1355" y="25" width="340" height="175" rx="5" class="box"/><text x="1525" y="100" class="major">Speech performance</text><text x="1525" y="150" class="small">CosyVoice2</text>
+</svg>
+<p class="names" data-edit>Team 1234</p>
+<footer><span>OpenMic · Midterm Review</span><span>Team 1234 · 01 / 07</span></footer>
+</section>
+<!-- === lyy: project purpose and challenge analysis ===
+Speaker notes:
+Our working target is enjoyment for a specified audience, not a universal
+definition of humor. We need to decide whose judgments count and how to
+separate humor from fluency, familiarity and personal taste.
+For text, the challenge is to create a surprising but understandable turn,
+with relevant references and coherent callbacks rather than isolated jokes.
+For speech, the challenge is to realize delivery cues in the audio: pause
+placement, emphasis and emotion must fit the joke without sounding forced.
+Audience ratings and matched text/audio comparisons are proposed evaluation
+directions. No listener study or performance improvement is claimed here.
+=== -->
+<section class="slide" data-owner="lyy" aria-label="Project goal and challenges">
+<header><p class="eyebrow" data-edit>01 / lyy</p><h2 data-edit>What makes generated comedy enjoyable?</h2></header>
+<svg class="diagram" viewBox="0 0 1700 625" role="img" aria-label="Goal: turn an everyday topic into three to five minutes of Chinese stand-up. Three project challenges: define and evaluate humor for a target audience; write surprising but coherent and relatable text; translate timing, emphasis and emotion into audible delivery. Proposed validation: audience ratings and matched text/audio comparisons.">
+<defs><marker id="arrow-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#567190"/></marker></defs>
+<!-- Goal strip -->
+<rect x="0" y="0" width="1698" height="95" rx="5" class="tint"/>
+<text x="255" y="48" class="major">Everyday topic</text>
+<path d="M470 48 H675" class="link" marker-end="url(#arrow-2)"/>
+<text x="1160" y="48" class="major">Goal: 3–5 min of Chinese stand-up</text>
+<!-- Challenge 1: audience-dependent judgments -->
+<rect x="0" y="135" width="530" height="405" rx="5" class="box"/>
+<text x="265" y="185" class="major">01  Define humor</text>
+<text x="265" y="230" class="small">Funny to whom? How do we judge?</text>
+<rect x="45" y="285" width="155" height="75" rx="4" class="tint"/>
+<text x="122" y="323" class="small">Same joke</text>
+<path d="M215 323 H255 M255 293 V353 M255 293 H295 M255 353 H295" class="link"/>
+<circle cx="330" cy="293" r="27" class="box"/>
+<circle cx="322" cy="288" r="2.5" fill="#567190"/><circle cx="338" cy="288" r="2.5" fill="#567190"/>
+<path d="M318 299 Q330 312 342 299" class="link"/>
+<circle cx="330" cy="363" r="27" class="box"/>
+<circle cx="322" cy="358" r="2.5" fill="#567190"/><circle cx="338" cy="358" r="2.5" fill="#567190"/>
+<path d="M318 372 H342" class="link"/>
+<text x="431" y="293" class="english">Funny</text><text x="431" y="363" class="english">Not for me</text>
+<text x="265" y="450" class="small">Audience · Culture · Context</text>
+<text x="265" y="495" class="small accent">Working target: audience enjoyment</text>
+<!-- Challenge 2: surprise must remain coherent -->
+<rect x="585" y="135" width="530" height="405" rx="5" class="box"/>
+<text x="850" y="185" class="major">02  Write the joke</text>
+<text x="850" y="230" class="small">Surprising, coherent and relatable</text>
+<path d="M650 355 H775 L840 290 H1040" class="link" marker-end="url(#arrow-2)"/>
+<path d="M775 355 H1040" stroke="#c8d5e2" stroke-width="2" stroke-dasharray="8 8"/>
+<text x="700" y="320" class="small">Setup</text>
+<text x="945" y="260" class="small accent">Twist</text>
+<text x="945" y="390" class="english">Expected ending</text>
+<text x="850" y="450" class="small">Setup → Punchline → Callback</text>
+<text x="850" y="495" class="small accent">Keep the surprise understandable</text>
+<!-- Challenge 3: delivery cues must become audible -->
+<rect x="1170" y="135" width="528" height="405" rx="5" class="box"/>
+<text x="1434" y="185" class="major">03  Deliver the joke</text>
+<text x="1434" y="230" class="small">Make written cues audible</text>
+<path d="M1210 335 H1230 L1240 310 L1250 355 L1260 320 L1270 345 L1280 310 L1290 355 L1300 335 H1395 M1395 335 H1450 L1462 285 L1474 385 L1486 275 L1498 390 L1510 300 L1522 370 L1534 310 L1546 345 L1558 335 H1655" class="link"/>
+<path d="M1320 300 V290 H1380 V300" stroke="#2869b0" stroke-width="2" fill="none"/>
+<text x="1350" y="270" class="english accent">Pause</text>
+<text x="1260" y="400" class="english">Setup</text><text x="1520" y="425" class="english">Punchline</text>
+<text x="1434" y="475" class="small">Timing · Emphasis · Emotion</text>
+<text x="850" y="595" class="small">Proposed validation: audience ratings + matched text/audio comparisons</text>
+</svg>
+<footer><span>OpenMic · Midterm Review</span><span>lyy · 02 / 07</span></footer>
+</section>
+<!-- === lyy: architecture / TTS is manually triggered; stop after at most 2 rewrites === -->
+<section class="slide" data-owner="lyy" aria-label="System architecture">
+<header><p class="eyebrow" data-edit>01 / lyy</p><h2 data-edit>Five agents, with a quality-driven revision loop</h2></header>
+<svg class="diagram" viewBox="0 0 1700 625" role="img" aria-label="AutoGen GroupChat runs direction, audience analysis, writing, performance coaching and quality control in order. Revision returns to the writer, up to twice. Results are displayed, and the user can edit the script and trigger CosyVoice2 speech synthesis.">
+<defs><marker id="arrow-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#567190"/></marker></defs>
+<text x="850" y="30" class="small">AutoGen 0.2 · GroupChatManager + fixed routing</text>
+<rect x="0" y="95" width="300" height="155" rx="5" class="box"/><text x="150" y="155" class="major">Direction</text><text x="150" y="210" class="english">ComedyDirector</text>
+<rect x="350" y="95" width="300" height="155" rx="5" class="box"/><text x="500" y="155" class="major">Audience analysis</text><text x="500" y="210" class="english">AudienceAnalyzer</text>
+<rect x="700" y="95" width="300" height="155" rx="5" class="box"/><text x="850" y="155" class="major">Script writing</text><text x="850" y="210" class="english">JokeWriter</text>
+<rect x="1050" y="95" width="300" height="155" rx="5" class="box"/><text x="1200" y="155" class="major">Delivery coaching</text><text x="1200" y="210" class="english">PerformanceCoach</text>
+<rect x="1400" y="95" width="300" height="155" rx="5" class="tint"/><text x="1550" y="155" class="major">Quality control</text><text x="1550" y="210" class="english">QualityController</text>
+<path d="M306 172 H343" class="link" marker-end="url(#arrow-3)"/>
+<path d="M656 172 H693" class="link" marker-end="url(#arrow-3)"/>
+<path d="M1006 172 H1043" class="link" marker-end="url(#arrow-3)"/>
+<path d="M1356 172 H1393" class="link" marker-end="url(#arrow-3)"/>
+<path d="M1550 250 V320 H850 V255" class="link" marker-end="url(#arrow-3)"/>
+<rect x="920" y="295" width="650" height="49" fill="white"/><text x="1245" y="320" class="small accent">Revision requested · up to 2 rewrites</text>
+<path d="M1680 250 V390 H230 V460" class="link" marker-end="url(#arrow-3)"/>
+<text x="850" y="370" class="small">Approved or revision limit reached → display script and quality status</text>
+<rect x="0" y="475" width="460" height="115" rx="5" class="box"/><text x="230" y="517" class="major">Streamlit</text><text x="230" y="560" class="small">Trace / Script / Manual edits</text>
+<path d="M480 533 H620" class="link" marker-end="url(#arrow-3)"/>
+<text x="551" y="455" class="small">Generate speech</text>
+<rect x="640" y="475" width="490" height="115" rx="5" class="tint"/><text x="885" y="517" class="major">Clean text → CosyVoice2</text><text x="885" y="560" class="small">TTS pipeline</text>
+<path d="M1150 533 H1310" class="link" marker-end="url(#arrow-3)"/>
+<rect x="1330" y="475" width="370" height="115" rx="5" class="box"/><text x="1515" y="517" class="major">16 kHz WAV</text><text x="1515" y="560" class="small">Play / Download</text>
+</svg>
+<footer><span>OpenMic · Midterm Review</span><span>lyy · 03 / 07</span></footer>
+</section>
+<!-- === znjq: TODO / Content generation === -->
+<section class="slide" data-owner="znjq" aria-label="Content generation">
+<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>Content generation</h2></header>
+<div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>znjq</p><p class="hint" data-edit>Topic input · Audience analysis · Script & delivery cues</p></div>
+<footer><span>OpenMic · Midterm Review</span><span>znjq · 04 / 07</span></footer>
+</section>
+<!-- === csw / jyb: TODO / Speech generation === -->
+<section class="slide" data-owner="csw / jyb" aria-label="Speech generation">
+<header><p class="eyebrow" data-edit>03 / csw / jyb</p><h2 data-edit>Speech generation</h2></header>
+<div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>csw / jyb</p><p class="hint" data-edit>CosyVoice2 · Voice · Speed · 16 kHz WAV</p></div>
+<footer><span>OpenMic · Midterm Review</span><span>csw / jyb · 05 / 07</span></footer>
+</section>
+<!-- === szq: TODO / Evaluation & current progress === -->
+<section class="slide" data-owner="szq" aria-label="Evaluation & current progress">
+<header><p class="eyebrow" data-edit>04 / szq</p><h2 data-edit>Evaluation & current progress</h2></header>
+<div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>szq</p><p class="hint" data-edit>TODO: evaluation methods and results</p></div>
+<footer><span>OpenMic · Midterm Review</span><span>szq · 06 / 07</span></footer>
+</section>
+<!-- === szq: TODO / Limitations & next steps === -->
+<section class="slide" data-owner="szq" aria-label="Limitations & next steps">
+<header><p class="eyebrow" data-edit>05 / szq</p><h2 data-edit>Limitations & next steps</h2></header>
+<div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>szq</p><p class="hint" data-edit>TODO: limitations, next steps and closing</p></div>
+<footer><span>OpenMic · Midterm Review</span><span>szq · 07 / 07</span></footer>
+</section>
+</main></div>
+<!-- === DECK CHROME === -->
+<nav class="deck-controls" aria-label="Slide controls">
+<button id="previous" aria-label="Previous slide">←</button><span id="count" aria-live="polite"></span><button id="next" aria-label="Next slide">→</button>
+<button id="save" title="Download HTML with your edits">Save HTML</button><button id="print">Print / PDF</button>
+</nav>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button id="editToggle" class="edit-toggle" aria-pressed="false">Edit text</button>
+<div class="edit-help" role="status">Local draft · Save HTML to share · Esc to exit editing</div>
+<script>
+/* === NAVIGATION: preserve a fixed stage, keyboard / wheel / touch === */
+class SlidePresentation {
+ constructor() {
+  this.stage=document.getElementById('deckStage');
+  this.slides=[...document.querySelectorAll('.slide')];
+  this.index=0; this.editing=false;
+  this.fit=()=>{const s=Math.min(innerWidth/1920,innerHeight/1080);this.stage.style.transform='translate('+((innerWidth-1920*s)/2)+'px,'+((innerHeight-1080*s)/2)+'px) scale('+s+')';};
+  addEventListener('resize',this.fit); this.fit();
+  this.show(Number(location.hash.slice(1))-1 || 0);
+  addEventListener('hashchange',()=>this.show(Number(location.hash.slice(1))-1 || 0));
+  document.getElementById('previous').onclick=()=>this.show(this.index-1);
+  document.getElementById('next').onclick=()=>this.show(this.index+1);
+  addEventListener('keydown',e=>{
+   if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDeck();return;}
+   if(e.key==='Escape'){this.setEdit(false);return;}
+   if(e.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+   if(e.key.toLowerCase()==='e'){this.setEdit(!this.editing);return;}
+   if(this.editing || e.target.tagName==='BUTTON')return;
+   if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();this.show(this.index+1);}
+   if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();this.show(this.index-1);}
+   if(e.key==='Home'){e.preventDefault();this.show(0);}
+   if(e.key==='End'){e.preventDefault();this.show(this.slides.length-1);}
+  });
+  let lastWheel=0;
+  addEventListener('wheel',e=>{if(this.editing||Math.abs(e.deltaY)<15||Date.now()-lastWheel<400)return;lastWheel=Date.now();this.show(this.index+Math.sign(e.deltaY));},{passive:true});
+  let start=null;
+  this.stage.addEventListener('touchstart',e=>{start=e.touches.length===1?e.touches[0].clientX:null;},{passive:true});
+  this.stage.addEventListener('touchend',e=>{if(start!==null&&!this.editing){const d=start-e.changedTouches[0].clientX;if(Math.abs(d)>50)this.show(this.index+Math.sign(d));}start=null;},{passive:true});
+ }
+ show(n){this.index=Math.max(0,Math.min(n,this.slides.length-1));this.slides.forEach((s,i)=>{s.classList.toggle('active',i===this.index);s.setAttribute('aria-hidden',String(i!==this.index));});document.getElementById('count').textContent=(this.index+1)+' / '+this.slides.length;document.getElementById('previous').disabled=this.index===0;document.getElementById('next').disabled=this.index===this.slides.length-1;}
+ setEdit(value){this.editing=value;document.body.classList.toggle('editing',value);document.querySelectorAll('[data-edit]').forEach(el=>{if(value)el.setAttribute('contenteditable','plaintext-only');else el.removeAttribute('contenteditable');});const b=document.getElementById('editToggle');b.classList.toggle('active',value);b.setAttribute('aria-pressed',String(value));b.textContent=value?'Finish editing':'Edit text';}
+}
+/* === EDITING: local drafts are not online shared editing === */
+const draftKey='openmic-midterm-'+location.pathname+'-'+document.documentElement.dataset.revision;
+const fields=[...document.querySelectorAll('[data-edit]')];
+try {const values=JSON.parse(localStorage.getItem(draftKey)||'null');if(Array.isArray(values)&&values.length===fields.length)fields.forEach((el,i)=>{if(typeof values[i]==='string')el.textContent=values[i];});} catch {}
+fields.forEach(el=>el.addEventListener('input',()=>{try{localStorage.setItem(draftKey,JSON.stringify(fields.map(x=>x.textContent)));}catch{}}));
+const deck=new SlidePresentation();
+const toggle=document.getElementById('editToggle'),hotzone=document.querySelector('.edit-hotzone');
+toggle.onclick=()=>deck.setEdit(!deck.editing);
+hotzone.onclick=()=>deck.setEdit(!deck.editing);
+let hideTimer;
+[hotzone,toggle].forEach(el=>{el.addEventListener('mouseenter',()=>{clearTimeout(hideTimer);toggle.classList.add('show');});el.addEventListener('mouseleave',()=>{hideTimer=setTimeout(()=>{if(!deck.editing)toggle.classList.remove('show');},400);});});
+/* === EXPORT: save edited text in the HTML, reset transient presentation state === */
+function saveDeck(){
+ const clone=document.documentElement.cloneNode(true);
+ clone.dataset.revision=String(Date.now());
+ clone.querySelector('body').classList.remove('editing');
+ clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+ clone.querySelectorAll('.slide').forEach((el,i)=>{el.classList.toggle('active',i===0);el.setAttribute('aria-hidden',String(i!==0));});
+ clone.querySelector('#deckStage').removeAttribute('style');
+ const button=clone.querySelector('#editToggle');button.className='edit-toggle';button.setAttribute('aria-pressed','false');button.textContent='Edit text';
+ const blob=new Blob(['<!DOCTYPE html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='midterm.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById('save').onclick=saveDeck;
+document.getElementById('print').onclick=()=>window.print();
+</script>
+</body></html>

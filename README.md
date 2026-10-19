@@ -150,6 +150,7 @@ docs/                  # PRD、会议议程与 Smoke Test 记录
 
 ## 文档
 
+- [中期汇报（英文 HTML）](presentation/midterm.html) · [编辑与分工说明](presentation/README.md)
 - [产品需求文档](docs/PRD.md)
 - [第一次项目分工会](docs/MEETING_01.md)
 - [真实模型 Smoke Test](docs/SMOKE_TEST.md)
