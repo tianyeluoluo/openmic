@@ -8,6 +8,7 @@ import json
 import random
 from dataclasses import asdict
 from pathlib import Path
+from statistics import mean
 from typing import Dict, List
 
 from openmic.humor_data import CFunRetriever, download_cfunset, prepare_cfunset
@@ -119,6 +120,56 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
     print(f"Saved {len(rows)} complete traces and blinded rating sheets to {output_dir}")
 
 
+def summarize_automatic(trace_path: Path) -> Dict[str, object]:
+    """Summarize paired, checkable outcomes; these are not human humor ratings."""
+    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    expected = [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")]
+    if [(row.get("topic"), row.get("condition")) for row in rows] != expected:
+        raise ValueError("自动汇总需要每个主题各一条 baseline 和 cfunset 完整轨迹")
+    if len({(row["model"], row["temperature"]) for row in rows}) != 1:
+        raise ValueError("自动汇总要求所有样本使用同一模型与温度")
+    metric_names = (
+        "qc_score_0_10", "structure_proxy_0_10", "paired_beats",
+        "delayed_beats", "callback_count", "han_characters",
+    )
+
+    def metrics(row: Dict[str, object]) -> Dict[str, float]:
+        structure = row["structure"]
+        return {
+            name: float(row[name] if name == "qc_score_0_10" else structure[name])
+            for name in metric_names
+        }
+
+    by_topic = []
+    for position, topic in enumerate(TOPICS):
+        baseline, cfunset = rows[2 * position : 2 * position + 2]
+        baseline_metrics, cfunset_metrics = metrics(baseline), metrics(cfunset)
+        by_topic.append({
+            "topic": topic,
+            "baseline": baseline_metrics,
+            "cfunset": cfunset_metrics,
+            "delta": {name: round(cfunset_metrics[name] - baseline_metrics[name], 3) for name in metric_names},
+            "approved": {"baseline": bool(baseline["approved"]), "cfunset": bool(cfunset["approved"])},
+        })
+    aggregate = {
+        name: {
+            "baseline_mean": round(mean(item["baseline"][name] for item in by_topic), 3),
+            "cfunset_mean": round(mean(item["cfunset"][name] for item in by_topic), 3),
+            "mean_paired_delta": round(mean(item["delta"][name] for item in by_topic), 3),
+        }
+        for name in metric_names
+    }
+    return {
+        "model": rows[0]["model"],
+        "temperature": rows[0]["temperature"],
+        "topic_count": len(TOPICS),
+        "condition_sample_count": len(TOPICS),
+        "aggregate": aggregate,
+        "by_topic": by_topic,
+        "note": "结构代理分与模型质检分不能替代盲评的幽默度和文化适配度。",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="CFunSet content preparation and benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -135,6 +186,8 @@ def main() -> None:
     run.add_argument("--index", type=Path, default=Path("artifacts/cfunset/index.jsonl"))
     run.add_argument("--output", type=Path, default=Path("artifacts/content_benchmark"))
     run.add_argument("--seed", type=int, default=2025)
+    automatic = sub.add_parser("auto-summary", help="Summarize completed paired traces without human ratings")
+    automatic.add_argument("--traces", type=Path, default=Path("artifacts/content_benchmark/traces.jsonl"))
     summary = sub.add_parser("summarize", help="Aggregate completed blinded ratings")
     summary.add_argument("--ratings", type=Path, required=True)
     summary.add_argument("--key", type=Path, required=True)
@@ -152,6 +205,11 @@ def main() -> None:
         ], ensure_ascii=False, indent=2))
     elif args.command == "compare":
         compare(args.index, args.output, seed=args.seed)
+    elif args.command == "auto-summary":
+        result = summarize_automatic(args.traces)
+        text = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+        (args.traces.parent / "automatic_summary.json").write_text(text, encoding="utf-8")
+        print(text)
     else:
         key = json.loads(args.key.read_text(encoding="utf-8"))
         conditions = {sample_id: value["condition"] for sample_id, value in key.items()}

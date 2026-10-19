@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from openmic.autogen_v02 import _system_messages
-from openmic.humor_benchmark import TOPICS, compare
+from openmic.humor_benchmark import TOPICS, compare, summarize_automatic
 from openmic.humor_data import CFunRetriever, derive_example, iter_cfunset, prepare_cfunset
 from openmic.humor_evaluation import aggregate_ratings, analyze_structure
 from openmic.models import AgentMessage, ProjectRequest
@@ -136,6 +136,9 @@ class HumorGenerationTests(unittest.TestCase):
             self.assertEqual(len(original_lines), 10)
             self.assertEqual(trace_path.read_text(encoding="utf-8").splitlines(keepends=True)[:2], original_lines[:2])
             self.assertEqual(calls, [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")][2:])
+            summary = summarize_automatic(trace_path)
+            self.assertEqual(summary["topic_count"], 5)
+            self.assertEqual(summary["aggregate"]["qc_score_0_10"]["mean_paired_delta"], 0)
 
 
 if __name__ == "__main__":
