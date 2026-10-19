@@ -30,6 +30,8 @@ python -m openmic.humor_benchmark preview \
 
 `ComedyDirector` 将简短主题展开为五个生活场景，每个场景列正常预期、反差和可听/可见细节，规划三幕递进与回调锚点。`JokeWriter` 按约 250 汉字/分钟设目标长度，要求至少 `分钟数+2` 组 `[SETUP]`→`[PUNCHLINE]`，包袱之前插入细节或误导，中段与结尾各用一次 `[CALLBACK]`，并控制口语词和网络流行语的使用。`PerformanceCoach`、`QualityController` 和返工路由沿用现有 AutoGen 0.2 工作流。
 
+根据首轮评分反馈，共享提示加入校园场景核对：住校大学生赶早八默认在宿舍与教学楼之间步行或骑行；若同时出现地铁，须说明走读或跨校区的理由。该约束对两种生成条件一致。已保存的首轮十条轨迹产生于加入此约束之前，不能作为修正后的效果评估；聚合结果和限制见 [CFUNSET_RESULTS.md](CFUNSET_RESULTS.md)。
+
 两种生成条件使用同一模型、温度、主题扩展、脚本协议与质检流程：
 
 - `baseline`：不提供 CFunSet 示例；

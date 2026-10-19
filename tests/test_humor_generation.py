@@ -68,6 +68,14 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertIn("CFunSet", enriched["JokeWriter"])
         self.assertNotIn("CFunSet", baseline["JokeWriter"])
 
+    def test_college_prompts_check_early_class_setting(self) -> None:
+        prompts = _system_messages(ProjectRequest(topic="赶早八"))
+        for agent in ("ComedyDirector", "JokeWriter", "QualityController"):
+            self.assertIn("住校大学生赶早八通常从宿舍步行或骑车去教学楼", prompts[agent])
+            self.assertIn("走读或跨校区", prompts[agent])
+        non_college = _system_messages(ProjectRequest(topic="通勤", audience="上班族"))
+        self.assertNotIn("校园情境核对", non_college["ComedyDirector"])
+
     def test_structure_proxy_counts_pairs_delay_and_callbacks(self) -> None:
         script = (
             "[SETUP]\n我今天去食堂，本来以为队伍很短，等我走到最前面才发现，前面还有人在排。\n"

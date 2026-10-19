@@ -115,11 +115,18 @@ class SpeakerRouter:
 
 
 def _shared_context(request: ProjectRequest) -> str:
+    campus_setting = (
+        "校园情境核对：住校大学生赶早八通常从宿舍步行或骑车去教学楼，"
+        "不要无缘无故写成坐地铁上早课。若故事需要把早八与地铁通勤联系起来，"
+        "先交代人物走读或跨校区等合理原因；若主题就是地铁通勤，不必硬套早八。"
+        if "大学生" in request.audience else ""
+    )
     return (
         "\n\n当前任务约束："
         f"主题={request.topic}；风格={request.style}；"
         f"目标时长={request.duration_minutes}分钟；受众={request.audience}。"
         "只处理自己职责范围内的工作，并显式引用必要的上游结论。"
+        + campus_setting
     )
 
 
