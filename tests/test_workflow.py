@@ -1,6 +1,6 @@
 import unittest
 
-from openmic.autogen_v02 import SpeakerRouter, _extract_score
+from openmic.autogen_v02 import SpeakerRouter, _extract_score, extract_qc_scores
 from openmic.models import ProjectRequest
 from openmic.workflow import OpenMicWorkflow
 
@@ -76,6 +76,7 @@ class WorkflowTests(unittest.TestCase):
     def test_extracts_equals_quality_score(self) -> None:
         content = "HUMOR_SCORE=8.5、CULTURE_SCORE=9.0、STRUCTURE_SCORE=8.5"
         self.assertAlmostEqual(_extract_score(content), 8.67, places=2)
+        self.assertEqual(extract_qc_scores(content), {"humor": 8.5, "culture": 9.0, "structure": 8.5})
 
     def test_extracts_markdown_table_quality_score(self) -> None:
         content = """

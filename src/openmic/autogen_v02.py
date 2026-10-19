@@ -270,9 +270,9 @@ class AutoGenV02Workflow:
         )
 
 
-def _extract_score(content: str) -> float:
+def extract_qc_scores(content: str) -> Dict[str, float]:
     labels = ("HUMOR", "CULTURE", "STRUCTURE")
-    scores: List[float] = []
+    scores: Dict[str, float] = {}
     for label in labels:
         patterns = (
             rf"{label}_SCORE\s*[:：=]\s*\**\s*(\d+(?:\.\d+)?)",
@@ -281,6 +281,11 @@ def _extract_score(content: str) -> float:
         for pattern in patterns:
             match = re.search(pattern, content, flags=re.IGNORECASE)
             if match:
-                scores.append(float(match.group(1)))
+                scores[label.lower()] = float(match.group(1))
                 break
+    return scores
+
+
+def _extract_score(content: str) -> float:
+    scores = list(extract_qc_scores(content).values())
     return sum(scores) / len(scores) if scores else 0.0

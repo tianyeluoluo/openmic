@@ -59,7 +59,7 @@ python -m openmic.humor_benchmark compare \
 
 `compare` 每完成一条样本就追加一行轨迹；中断后使用同一输出目录可从下一条续跑。续跑前会核对模型、数据版本、随机种子和轨迹顺序；改变实验条件时请使用新的输出目录。如果脚本或质检响应不完整，会最多重试三次，仍不完整则报错且不写入该条轨迹。
 
-十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数和模型质检分的配对差值；这些仍不能替代盲评的幽默度与文化适配度。
+十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数，以及模型自评幽默、文化、结构分的配对差值；这些模型自评分仍不能替代盲评的幽默度与文化适配度。
 
 完成评分后运行：
 

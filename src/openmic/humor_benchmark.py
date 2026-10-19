@@ -33,7 +33,7 @@ def _writer_script(messages: list) -> str:
 
 
 def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
-    from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow
+    from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow, extract_qc_scores
 
     stats_path = index.with_suffix(".stats.json")
     stats = json.loads(stats_path.read_text(encoding="utf-8"))
@@ -88,9 +88,8 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
                 ]
                 final_qc = qc_messages[-1].upper() if qc_messages else ""
                 valid_qc = (
-                    all(label in final_qc for label in ("HUMOR_SCORE", "CULTURE_SCORE", "STRUCTURE_SCORE"))
+                    len(extract_qc_scores(final_qc)) == 3
                     and any(decision in final_qc for decision in ("DECISION: APPROVED", "DECISION: REVISION_REQUIRED"))
-                    and result.score > 0
                 )
                 if script.strip() and valid_qc:
                     break
@@ -138,6 +137,8 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
 
 def summarize_automatic(trace_path: Path) -> Dict[str, object]:
     """Summarize paired, checkable outcomes; these are not human humor ratings."""
+    from openmic.autogen_v02 import extract_qc_scores
+
     rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
     expected = [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")]
     if [(row.get("topic"), row.get("condition")) for row in rows] != expected:
@@ -145,14 +146,28 @@ def summarize_automatic(trace_path: Path) -> Dict[str, object]:
     if len({(row["model"], row["temperature"]) for row in rows}) != 1:
         raise ValueError("自动汇总要求所有样本使用同一模型与温度")
     metric_names = (
-        "qc_score_0_10", "structure_proxy_0_10", "paired_beats",
+        "qc_score_0_10", "qc_humor_0_10", "qc_culture_0_10", "qc_structure_0_10",
+        "structure_proxy_0_10", "paired_beats",
         "delayed_beats", "callback_count", "han_characters",
     )
 
     def metrics(row: Dict[str, object]) -> Dict[str, float]:
         structure = row["structure"]
+        qc_messages = [
+            message["content"] for message in row["messages"]
+            if message["agent"] == "QualityController"
+        ]
+        qc = extract_qc_scores(qc_messages[-1]) if qc_messages else {}
+        if len(qc) != 3:
+            raise ValueError("轨迹中缺少完整的质检分项，无法自动汇总")
+        derived = {
+            "qc_score_0_10": row["qc_score_0_10"],
+            "qc_humor_0_10": qc["humor"],
+            "qc_culture_0_10": qc["culture"],
+            "qc_structure_0_10": qc["structure"],
+        }
         return {
-            name: float(row[name] if name == "qc_score_0_10" else structure[name])
+            name: float(derived[name] if name in derived else structure[name])
             for name in metric_names
         }
 
