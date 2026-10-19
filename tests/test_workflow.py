@@ -1,6 +1,8 @@
 import unittest
 
-from openmic.autogen_v02 import SpeakerRouter, _extract_score, extract_qc_scores
+from openmic.autogen_v02 import (
+    SpeakerRouter, _extract_score, _qc_has_actionable_issues, extract_qc_scores,
+)
 from openmic.models import ProjectRequest
 from openmic.workflow import OpenMicWorkflow
 
@@ -68,6 +70,18 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(router(agents["QualityController"], rejected).name, "JokeWriter")
         self.assertEqual(router(agents["QualityController"], rejected).name, "JokeWriter")
         self.assertIsNone(router(agents["QualityController"], rejected))
+
+    def test_approved_qc_with_explicit_repairs_routes_back(self) -> None:
+        agents = {name: FakeAgent(name) for name in ("JokeWriter", "QualityController")}
+        router = SpeakerRouter(agents, max_revisions=1)
+        contradictory = FakeGroupChat(
+            "HUMOR_SCORE: 8\nCULTURE_SCORE: 7\nSTRUCTURE_SCORE: 8\n"
+            "修改意见：包邮后又让买家自提，逻辑易混淆。\nDECISION: APPROVED"
+        )
+        self.assertTrue(_qc_has_actionable_issues(contradictory.messages[0]["content"]))
+        self.assertEqual(router(agents["QualityController"], contradictory).name, "JokeWriter")
+        self.assertIsNone(router(agents["QualityController"], contradictory))
+        self.assertFalse(_qc_has_actionable_issues("无修改意见。\nDECISION: APPROVED"))
 
     def test_extracts_mean_quality_score(self) -> None:
         content = "HUMOR_SCORE: 8\nCULTURE_SCORE: 7\nSTRUCTURE_SCORE: 9"

@@ -65,7 +65,7 @@ python -m openmic.humor_benchmark compare \
 
 额度有限时可加 `--max-samples 2`，先生成首主题的一对稿件；之后去掉该参数并使用**同一个输出目录**续跑。十条全部完成后才会写正式盲评模板；自动汇总仍需单独运行 `auto-summary`。保存生成日志时在 Windows 先设 `PYTHONIOENCODING=utf-8`；给 Excel 打开的 CSV 应采用 UTF-8 BOM。
 
-首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，当前加入有效回调检查和用户指出的包邮/自提常识后标记为 `r1-feedback-v4-callbacks`。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
+首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，有效回调和包邮/自提常识版标记为 `r1-feedback-v4-callbacks`。当前版本 `r1-feedback-v5-qc-routing` 进一步把质检文本中明确列出“修改意见”或“不合常理”却给 `APPROVED` 的结果送回写作 Agent，返工上限仍为两次。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
 
 十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数，以及模型自评幽默、文化、结构分的配对差值；这些模型自评分仍不能替代盲评的幽默度与文化适配度。
 

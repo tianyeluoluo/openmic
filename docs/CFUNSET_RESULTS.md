@@ -48,4 +48,6 @@ R1 指出一个文化场景误区：校园住校生赶早八通常从宿舍步�
 
 `r1-feedback-v4-callbacks` 又生成一对网购稿：baseline / CFunSet 分别为 671 / 685 汉字、各有 2 次非空且相隔的回调、结构代理分 9.79 / 9.83，模型质检均分均约 7.67。两篇通过当前确定性协议检查；R1 的四项盲评表已另存在忽略目录，尚待评分。人工阅读发现 CFunSet 结尾“胶带也算重量”包袱偏弱，模型质检仍给幽默 8 分；质检还在 `APPROVED` 的同时列出需修改的逻辑或措辞问题。下一步应结合盲评分数检查这一批准门槛，不能把结构达标或模型自评当成笑点提升。
 
+对 v4 两条质检文本离线检查，**2/2** 都存在“批准同时指出具体待改问题”的矛盾。当前 `r1-feedback-v5-qc-routing` 已将这种结果纳入返工路由，相关单元测试通过；它尚未重新调用模型，不能把该检出统计写成 v5 生成质量。
+
 在桌面仓库使用 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl` 可重算此表。人工评分合并为 `ratings.csv` 后，再按 `docs/CFUNSET_CONTENT.md` 运行 `summarize`。所有数值都来自已保存的十条轨迹；本报告没有复制 CFunSet 原文或生成脚本。

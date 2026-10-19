@@ -106,7 +106,10 @@ class SpeakerRouter:
 
         if last_speaker.name == "QualityController":
             last_content = str(groupchat.messages[-1].get("content", ""))
-            needs_revision = "DECISION: REVISION_REQUIRED" in last_content
+            needs_revision = (
+                "DECISION: REVISION_REQUIRED" in last_content
+                or _qc_has_actionable_issues(last_content)
+            )
             if needs_revision and self.revision_count < self.max_revisions:
                 self.revision_count += 1
                 return self.agents_by_name["JokeWriter"]
@@ -172,6 +175,8 @@ def _system_messages(
             "早八与地铁无合理缘由、过时网络梗或不适合校园的成人题材应要求返工。"
             "脚本含策划语、丢失结构标签或出现空 [CALLBACK] 标签也必须返工。"
             "结构缺项或有明显安全问题必须要求修改；其余情况下平均分达到 7.0 才通过。"
+            "若指出具体需要修改的事实、流程或结尾问题，即使均分达标也必须返工；"
+            "给出 APPROVED 时不得再列‘修改意见’或‘不合常理’的地方。"
             "最后一行必须且只能是 "
             "`DECISION: APPROVED` 或 `DECISION: REVISION_REQUIRED`。控制在350字内。"
         ),
@@ -291,7 +296,11 @@ class AutoGenV02Workflow:
             script_contract_issues(writer_script, request.duration_minutes, request.audience)
         )
         return WorkflowResult(
-            approved="DECISION: APPROVED" in final_qc and not validation_issues,
+            approved=(
+                "DECISION: APPROVED" in final_qc
+                and not _qc_has_actionable_issues(final_qc)
+                and not validation_issues
+            ),
             score=_extract_score(final_qc),
             messages=transcript,
             revision_count=router.revision_count,
@@ -314,6 +323,14 @@ def extract_qc_scores(content: str) -> Dict[str, float]:
                 scores[label.lower()] = float(match.group(1))
                 break
     return scores
+
+
+def _qc_has_actionable_issues(content: str) -> bool:
+    """Reject a QC approval that still calls out a concrete repair."""
+    return bool(re.search(
+        r"(?m)^\s*(?:修改意见|待修改|必改)\s*[:：]|(?<!无)不合常理|(?<!不)易混淆",
+        content,
+    ))
 
 
 def _extract_score(content: str) -> float:
