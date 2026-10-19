@@ -275,7 +275,7 @@ def _extract_score(content: str) -> float:
     scores: List[float] = []
     for label in labels:
         patterns = (
-            rf"{label}_SCORE\s*[:：]\s*\**\s*(\d+(?:\.\d+)?)",
+            rf"{label}_SCORE\s*[:：=]\s*\**\s*(\d+(?:\.\d+)?)",
             rf"{label}_SCORE[^|\n]*\|\s*\**\s*(\d+(?:\.\d+)?)",
         )
         for pattern in patterns:
