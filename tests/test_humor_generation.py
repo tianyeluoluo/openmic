@@ -3,11 +3,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from openmic.autogen_v02 import _system_messages
+from openmic.humor_benchmark import TOPICS, compare
 from openmic.humor_data import CFunRetriever, derive_example, iter_cfunset, prepare_cfunset
 from openmic.humor_evaluation import aggregate_ratings, analyze_structure
-from openmic.models import ProjectRequest
+from openmic.models import AgentMessage, ProjectRequest
 
 
 class HumorGenerationTests(unittest.TestCase):
@@ -92,6 +95,47 @@ class HumorGenerationTests(unittest.TestCase):
             self.assertEqual(result["rater_count"], 2)
             self.assertEqual(result["conditions"]["cfunset"]["humor"]["mean"], 4)
             self.assertEqual(result["conditions"]["cfunset"]["humor"]["sample_variance"], 2)
+
+    def test_compare_resumes_without_regenerating_completed_samples(self) -> None:
+        calls = []
+
+        class FakeWorkflow:
+            def __init__(self, config, *, content_mode, cfunset_index):
+                self.condition = content_mode
+
+            def run(self, request):
+                calls.append((request.topic, self.condition))
+                return SimpleNamespace(
+                    messages=[AgentMessage("JokeWriter", "[SETUP]铺垫[PUNCHLINE]包袱")],
+                    approved=True,
+                    score=8.0,
+                    revision_count=0,
+                )
+
+        with tempfile.TemporaryDirectory() as folder:
+            index = Path(folder) / "index.jsonl"
+            index.write_text(
+                json.dumps({"id": "test-1", "task": "keyword", "setup": "网购铺垫", "punchline": "网购包袱", "split": "train"}, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            index.with_suffix(".stats.json").write_text(
+                json.dumps({"official_sha256_match": True, "revision": "test", "source_sha256": "test"}),
+                encoding="utf-8",
+            )
+            output = Path(folder) / "output"
+            fake_config = SimpleNamespace(model="test-model", temperature=0.7)
+            with patch("openmic.autogen_v02.AutoGenConfig.from_env", return_value=fake_config), patch(
+                "openmic.autogen_v02.AutoGenV02Workflow", FakeWorkflow
+            ):
+                compare(index, output)
+                trace_path = output / "traces.jsonl"
+                original_lines = trace_path.read_text(encoding="utf-8").splitlines(keepends=True)
+                trace_path.write_text("".join(original_lines[:2]), encoding="utf-8")
+                calls.clear()
+                compare(index, output)
+            self.assertEqual(len(original_lines), 10)
+            self.assertEqual(trace_path.read_text(encoding="utf-8").splitlines(keepends=True)[:2], original_lines[:2])
+            self.assertEqual(calls, [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")][2:])
 
 
 if __name__ == "__main__":

@@ -41,24 +41,41 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     config = AutoGenConfig.from_env()
     retriever = CFunRetriever(index)
-    (output_dir / "manifest.json").write_text(
-        json.dumps({
-            "dataset_revision": stats["revision"],
-            "dataset_sha256": stats["source_sha256"],
-            "model": config.model,
-            "temperature": config.temperature,
-            "topics": list(TOPICS),
-            "duration_minutes": 3,
-            "blind_shuffle_seed": seed,
-        }, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    rows: List[Dict[str, object]] = []
+    manifest = {
+        "dataset_revision": stats["revision"],
+        "dataset_sha256": stats["source_sha256"],
+        "model": config.model,
+        "temperature": config.temperature,
+        "topics": list(TOPICS),
+        "duration_minutes": 3,
+        "blind_shuffle_seed": seed,
+    }
+    manifest_path = output_dir / "manifest.json"
     trace_path = output_dir / "traces.jsonl"
-    trace_path.write_text("", encoding="utf-8")
+    if manifest_path.exists():
+        if json.loads(manifest_path.read_text(encoding="utf-8")) != manifest:
+            raise ValueError("已有对照实验的模型、数据或随机种子不同；请换一个输出目录")
+    elif trace_path.exists() and trace_path.stat().st_size:
+        raise ValueError("发现没有 manifest.json 的轨迹文件，不能安全续跑")
+    else:
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    expected = [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")]
+    rows: List[Dict[str, object]] = []
+    if trace_path.exists():
+        with trace_path.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, 1):
+                row = json.loads(line)
+                if line_number > len(expected) or (row.get("topic"), row.get("condition")) != expected[line_number - 1]:
+                    raise ValueError(f"轨迹第 {line_number} 行与预期顺序不符，不能安全续跑")
+                rows.append(row)
     for topic in TOPICS:
         request = ProjectRequest(topic=topic, duration_minutes=3)
         for condition in ("baseline", "cfunset"):
+            if len(rows) > expected.index((topic, condition)):
+                continue
             result = AutoGenV02Workflow(
                 config, content_mode=condition, cfunset_index=index
             ).run(request)
