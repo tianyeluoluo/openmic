@@ -4,11 +4,14 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from dotenv import load_dotenv
 
 from openmic.agents import AGENT_SPECS
+from openmic.humor_data import CFunRetriever, HumorExample
+from openmic.humor_generation import topic_expansion_prompt, writer_prompt
 from openmic.models import AgentMessage, ProjectRequest, WorkflowResult
 
 
@@ -120,21 +123,20 @@ def _shared_context(request: ProjectRequest) -> str:
     )
 
 
-def _system_messages(request: ProjectRequest) -> Dict[str, str]:
+def _system_messages(
+    request: ProjectRequest, examples: Optional[List[HumorExample]] = None
+) -> Dict[str, str]:
     context = _shared_context(request)
     return {
         "ComedyDirector": AGENT_SPECS["ComedyDirector"].system_prompt
         + context
-        + "\n输出：主题切入点、叙事主线、三段式结构、风格边界。控制在300字内。",
+        + topic_expansion_prompt(request),
         "AudienceAnalyzer": AGENT_SPECS["AudienceAnalyzer"].system_prompt
         + context
         + "\n输出：共鸣点、知识门槛、措辞偏好、冒犯风险和修改建议。控制在300字内。",
         "JokeWriter": AGENT_SPECS["JokeWriter"].system_prompt
         + context
-        + (
-            "\n根据导演与受众分析写完整脚本，显式使用 [SETUP]、[PUNCHLINE]、"
-            "[CALLBACK] 标签。目标约800-1000个汉字。收到质检修改意见时必须重写，而不是解释。"
-        ),
+        + writer_prompt(request, examples or []),
         "PerformanceCoach": AGENT_SPECS["PerformanceCoach"].system_prompt
         + context
         + (
@@ -147,7 +149,10 @@ def _system_messages(request: ProjectRequest) -> Dict[str, str]:
         + context
         + (
             "\n分别给出 HUMOR_SCORE、CULTURE_SCORE、STRUCTURE_SCORE（0-10）。"
-            "总分达到 7.0 且无明显安全问题则通过。最后一行必须且只能是 "
+            f"逐项检查至少 {request.duration_minutes + 2} 组铺垫-包袱、"
+            "中段和结尾两次不同含义的回调、口语自然度与受众文化适配。"
+            "结构缺项或有明显安全问题必须要求修改；其余情况下平均分达到 7.0 才通过。"
+            "最后一行必须且只能是 "
             "`DECISION: APPROVED` 或 `DECISION: REVISION_REQUIRED`。控制在350字内。"
         ),
     }
@@ -156,9 +161,20 @@ def _system_messages(request: ProjectRequest) -> Dict[str, str]:
 class AutoGenV02Workflow:
     """Build and run the course-required AutoGen 0.2 GroupChat."""
 
-    def __init__(self, config: AutoGenConfig, max_revisions: int = 2):
+    def __init__(
+        self,
+        config: AutoGenConfig,
+        max_revisions: int = 2,
+        content_mode: Optional[str] = None,
+        cfunset_index: Optional[Path] = None,
+    ):
         self.config = config
         self.max_revisions = max_revisions
+        self.content_mode = content_mode or os.getenv("OPENMIC_CONTENT_MODE", "baseline")
+        if self.content_mode not in {"baseline", "cfunset"}:
+            raise ValueError("content_mode 必须为 baseline 或 cfunset")
+        configured_index = cfunset_index or os.getenv("OPENMIC_CFUNSET_INDEX")
+        self.cfunset_index = Path(configured_index) if configured_index else None
 
     def run(
         self,
@@ -173,7 +189,12 @@ class AutoGenV02Workflow:
             ) from exc
 
         llm_config = self.config.llm_config()
-        prompts = _system_messages(request)
+        examples: List[HumorExample] = []
+        if self.content_mode == "cfunset":
+            if self.cfunset_index is None:
+                raise ValueError("cfunset 模式需要 OPENMIC_CFUNSET_INDEX")
+            examples = CFunRetriever(self.cfunset_index).retrieve(request.topic)
+        prompts = _system_messages(request, examples)
         agents_by_name: Dict[str, Any] = {}
         for name in AGENT_SPECS:
             agents_by_name[name] = ConversableAgent(

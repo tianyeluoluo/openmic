@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow
 from openmic.models import ProjectRequest
@@ -30,6 +31,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="mock",
         help="mock 无需 Key；autogen 使用课程要求的 AutoGen 0.2 GroupChat",
     )
+    parser.add_argument(
+        "--content-mode", choices=["baseline", "cfunset"], default=None,
+        help="真实 AutoGen 模式的内容策略；默认读取 OPENMIC_CONTENT_MODE",
+    )
+    parser.add_argument(
+        "--cfunset-index", type=Path, default=None,
+        help="prepare 命令生成的 CFunSet 索引路径",
+    )
     return parser
 
 
@@ -42,7 +51,11 @@ def main() -> None:
         audience=args.audience,
     )
     if args.backend == "autogen":
-        result = AutoGenV02Workflow(AutoGenConfig.from_env()).run(request)
+        result = AutoGenV02Workflow(
+            AutoGenConfig.from_env(),
+            content_mode=args.content_mode,
+            cfunset_index=args.cfunset_index,
+        ).run(request)
     else:
         result = OpenMicWorkflow().run(request)
 

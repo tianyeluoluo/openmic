@@ -1,5 +1,8 @@
 """Streamlit UI for the OpenMic multi-agent text-to-audio pipeline."""
 
+import os
+from pathlib import Path
+
 import streamlit as st
 
 from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow
@@ -41,6 +44,17 @@ def main() -> None:
             "Agent 后端",
             options=["autogen", "mock"],
             format_func=lambda value: "真实 AutoGen" if value == "autogen" else "Mock（不消耗额度）",
+        )
+        content_mode = st.selectbox(
+            "文本生成策略",
+            options=["baseline", "cfunset"],
+            format_func=lambda value: "Prompt baseline" if value == "baseline" else "CFunSet 检索增强",
+            disabled=backend != "autogen",
+        )
+        index_path = st.text_input(
+            "CFunSet 索引路径",
+            value=os.getenv("OPENMIC_CFUNSET_INDEX", "artifacts/cfunset/index.jsonl"),
+            disabled=backend != "autogen" or content_mode != "cfunset",
         )
         st.info("密钥仅从本地 .env 读取，不会显示在页面或写入 Git。")
 
@@ -90,7 +104,11 @@ def main() -> None:
 
             with st.spinner("五个 Agent 正在协作，真实模型可能需要 1–3 分钟……"):
                 if backend == "autogen":
-                    result = AutoGenV02Workflow(AutoGenConfig.from_env()).run(
+                    result = AutoGenV02Workflow(
+                        AutoGenConfig.from_env(),
+                        content_mode=content_mode,
+                        cfunset_index=Path(index_path),
+                    ).run(
                         request,
                         on_message=show_message,
                     )

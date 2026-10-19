@@ -1,0 +1,98 @@
+import csv
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from openmic.autogen_v02 import _system_messages
+from openmic.humor_data import CFunRetriever, derive_example, iter_cfunset, prepare_cfunset
+from openmic.humor_evaluation import aggregate_ratings, analyze_structure
+from openmic.models import ProjectRequest
+
+
+class HumorGenerationTests(unittest.TestCase):
+    def test_prepare_filters_tasks_deduplicates_and_retrieves_training_only(self) -> None:
+        rows = [
+            {
+                "instruction": "生成一个关键词为“网购”的笑话",
+                "input": "",
+                "output": "我网购了一把椅子，等了三天才收到货。拆开一看，客服给我寄来了‘请坐’两个字。",
+            },
+            {
+                "instruction": "我将给你笑话的第一句话，请你生成整个笑话。笑话的第一句话如下：",
+                "input": "我每天早上赶地铁，总想找到一个座位。",
+                "output": "结果我终于坐下了，却发现坐的是自己的行李箱。",
+            },
+            {
+                "instruction": "请阅读以下文字，分析其幽默的原因。",
+                "input": "一句笑话",
+                "output": "原因是反差。",
+            },
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / "source.json"
+            index = Path(folder) / "index.jsonl"
+            source.write_text(json.dumps(rows + [rows[0]], ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(len(list(iter_cfunset(source))), 4)
+            stats = prepare_cfunset(source, index)
+            self.assertEqual(stats["counts"]["source_rows"], 4)
+            self.assertEqual(stats["counts"]["kept_rows"], 2)
+            self.assertEqual(stats["counts"]["duplicate_rows"], 1)
+            self.assertEqual(stats["counts"]["filtered_rows"], 1)
+            self.assertEqual(len(index.read_text(encoding="utf-8").splitlines()), 2)
+            self.assertTrue(index.with_suffix(".stats.json").exists())
+            # Force a training fixture so retrieval behavior is independent of hash split.
+            items = [json.loads(line) for line in index.read_text(encoding="utf-8").splitlines()]
+            for item in items:
+                item["split"] = "train"
+            index.write_text("\n".join(json.dumps(item, ensure_ascii=False) for item in items) + "\n", encoding="utf-8")
+            results = CFunRetriever(index).retrieve("网购椅子", k=1)
+            self.assertEqual(len(results), 1)
+            self.assertIn("网购", results[0].setup)
+
+    def test_prompt_ablation_only_adds_examples_to_writer(self) -> None:
+        request = ProjectRequest(topic="我的网购经历", duration_minutes=5)
+        baseline = _system_messages(request)
+        example = derive_example({
+            "instruction": "生成一个关键词为“网购”的笑话",
+            "input": "",
+            "output": "我买了一个快递箱，等了三天才收到。打开一看，里面还有一个更小的快递箱。",
+        })
+        self.assertIsNotNone(example)
+        enriched = _system_messages(request, [example])
+        self.assertEqual(baseline["ComedyDirector"], enriched["ComedyDirector"])
+        self.assertIn("目标 1062-1438 个汉字", enriched["JokeWriter"])
+        self.assertIn("CFunSet", enriched["JokeWriter"])
+        self.assertNotIn("CFunSet", baseline["JokeWriter"])
+
+    def test_structure_proxy_counts_pairs_delay_and_callbacks(self) -> None:
+        script = (
+            "[SETUP]\n我今天去食堂，本来以为队伍很短，等我走到最前面才发现，前面还有人在排。\n"
+            "[PUNCHLINE]\n原来那是下一顿饭的队伍。\n"
+            "[CALLBACK]\n下一顿饭我也没吃上。\n"
+            "[SETUP]\n后来我换到另一个窗口，发现那里连盘子都没有了。\n"
+            "[PUNCHLINE]\n工作人员说：盘子已经去排明天的队了。\n"
+            "[CALLBACK]\n连盘子都比我会排队。"
+        )
+        metrics = analyze_structure(script, 3)
+        self.assertEqual(metrics["paired_beats"], 2)
+        self.assertEqual(metrics["callback_count"], 2)
+        self.assertEqual(metrics["delayed_beats"], 2)
+        self.assertGreater(metrics["structure_proxy_0_10"], 4)
+
+    def test_human_summary_reports_mean_and_variance(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            ratings = Path(folder) / "ratings.csv"
+            with ratings.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["sample_id", "rater_id", "humor", "culture", "oral", "structure"])
+                writer.writerow(["S01", "r1", 3, 4, 4, 5])
+                writer.writerow(["S01", "r2", 5, 4, 3, 5])
+            result = aggregate_ratings(ratings, {"S01": "cfunset"})
+            self.assertEqual(result["rater_count"], 2)
+            self.assertEqual(result["conditions"]["cfunset"]["humor"]["mean"], 4)
+            self.assertEqual(result["conditions"]["cfunset"]["humor"]["sample_variance"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

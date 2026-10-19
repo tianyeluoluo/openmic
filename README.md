@@ -148,6 +148,19 @@ docs/                  # PRD、会议议程与 Smoke Test 记录
 
 后续开发集中在 CFunSet 数据管线、中文幽默生成对照实验、可执行的语音表演控制、人工盲评和课程交付。具体范围、验收指标和五人分工见 [PRD](docs/PRD.md)。
 
+## CFunSet 中文幽默生成
+
+文本生成模块提供主题扩展、按时长规划的 setup-punchline、两次回调、CFunSet 检索增强和五主题盲评对照。完整的数据来源、方法和评测协议见 [CFUNSET_CONTENT.md](docs/CFUNSET_CONTENT.md)。
+
+```bash
+python -m openmic.humor_benchmark download
+python -m openmic.humor_benchmark prepare --source artifacts/cfunset/CFunSet.json
+openmic --backend autogen --content-mode cfunset --cfunset-index artifacts/cfunset/index.jsonl --topic "我的网购经历"
+python -m openmic.humor_benchmark compare --index artifacts/cfunset/index.jsonl
+```
+
+`download` 支持续传并校验官方 SHA256。`baseline` 与 `cfunset` 使用同一生成协议，后者只添加本地检索的示例。原始数据、派生索引、模型轨迹和密钥均位于 Git 忽略路径或 `.env` 中。
+
 ## 文档
 
 - [中期汇报（英文 HTML）](presentation/midterm.html) · [编辑与分工说明](presentation/README.md)
