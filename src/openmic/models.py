@@ -48,4 +48,5 @@ class WorkflowResult:
     messages: List[AgentMessage]
     revision_count: int
     validation_issues: Tuple[str, ...] = ()
+    cfunset_example_ids: Tuple[str, ...] = ()
 

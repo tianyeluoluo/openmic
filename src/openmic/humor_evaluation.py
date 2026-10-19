@@ -35,7 +35,14 @@ def analyze_structure(script: str, duration_minutes: int) -> Dict[str, object]:
     target = duration_minutes * 250
     length_ratio = characters / target if target else 0.0
     required_pairs = duration_minutes + 2
-    callback_positions = [start for tag, start, _ in tags if tag == "CALLBACK"]
+    callback_positions = []
+    for index, (tag, start, end) in enumerate(tags):
+        if tag != "CALLBACK":
+            continue
+        next_start = tags[index + 1][1] if index + 1 < len(tags) else len(script)
+        # A standalone label before the next label is not a spoken callback.
+        if len(_HAN.findall(script[end:next_start])) >= 4:
+            callback_positions.append(start)
     spaced_callbacks = (
         len(callback_positions) >= 2
         and callback_positions[-1] - callback_positions[0] >= len(script) * 0.2
@@ -52,7 +59,8 @@ def analyze_structure(script: str, duration_minutes: int) -> Dict[str, object]:
         "punchline_count": counts["PUNCHLINE"],
         "paired_beats": pairs,
         "delayed_beats": delayed,
-        "callback_count": counts["CALLBACK"],
+        "callback_count": len(callback_positions),
+        "empty_callback_count": counts["CALLBACK"] - len(callback_positions),
         "spaced_callbacks": spaced_callbacks,
         "han_characters": characters,
         "target_han_characters": target,
@@ -70,6 +78,8 @@ def script_contract_issues(script: str, duration_minutes: int, audience: str = "
         issues.append("延时铺垫不足")
     if metrics["callback_count"] < 2 or not metrics["spaced_callbacks"]:
         issues.append("缺少相隔足够距离的双回调标签")
+    if metrics["han_characters"] > round(duration_minutes * 250 * 1.15):
+        issues.append("脚本超过目标时长的汉字上限")
     if (
         "大学生" in audience
         and "早八" in script

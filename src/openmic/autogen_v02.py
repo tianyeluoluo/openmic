@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional
 from dotenv import load_dotenv
 
 from openmic.agents import AGENT_SPECS
-from openmic.humor_data import CFunRetriever, HumorExample
+from openmic.humor_data import CFunRetriever, HumorExample, curate_stage_examples
 from openmic.humor_generation import topic_expansion_prompt, writer_prompt
 from openmic.humor_evaluation import script_contract_issues
 from openmic.models import AgentMessage, ProjectRequest, WorkflowResult
@@ -122,12 +122,17 @@ def _shared_context(request: ProjectRequest) -> str:
         "先交代人物走读或跨校区等合理原因；若主题就是地铁通勤，不必硬套早八。"
         if "大学生" in request.audience else ""
     )
+    shopping_setting = (
+        "网购交易常识：‘包邮’指卖家寄送并承担运费，‘自提’指买家自行到场取货；"
+        "同一笔交易不能前文承诺包邮、后文又无解释地让买家登门取货。"
+        if "网购" in request.topic else ""
+    )
     return (
         "\n\n当前任务约束："
         f"主题={request.topic}；风格={request.style}；"
         f"目标时长={request.duration_minutes}分钟；受众={request.audience}。"
         "只处理自己职责范围内的工作，并显式引用必要的上游结论。"
-        + campus_setting
+        + campus_setting + shopping_setting
     )
 
 
@@ -161,10 +166,11 @@ def _system_messages(
             f"逐项检查至少 {request.duration_minutes + 2} 组铺垫-包袱、"
             "中段和结尾两次不同含义的回调、口语自然度与受众文化适配。"
             "幽默分达到8须有多个具体而意外的揭底；若主要是换词重复、泛泛比喻、"
-            "解释笑点或为凑数而堆包袱，幽默分不高于6并要求返工。"
+            "解释笑点、结尾抽象说教或为凑数而堆包袱，幽默分不高于6并要求返工。"
             "文化分达到8须场景因果可信、中文校园细节自然；"
+            "核对交易方式、时间、金额与人物行动是否前后一致；"
             "早八与地铁无合理缘由、过时网络梗或不适合校园的成人题材应要求返工。"
-            "脚本含策划语或丢失 [SETUP]、[PUNCHLINE]、[CALLBACK] 标签也必须返工。"
+            "脚本含策划语、丢失结构标签或出现空 [CALLBACK] 标签也必须返工。"
             "结构缺项或有明显安全问题必须要求修改；其余情况下平均分达到 7.0 才通过。"
             "最后一行必须且只能是 "
             "`DECISION: APPROVED` 或 `DECISION: REVISION_REQUIRED`。控制在350字内。"
@@ -207,7 +213,8 @@ class AutoGenV02Workflow:
         if self.content_mode == "cfunset":
             if self.cfunset_index is None:
                 raise ValueError("cfunset 模式需要 OPENMIC_CFUNSET_INDEX")
-            examples = CFunRetriever(self.cfunset_index).retrieve(request.topic)
+            candidates = CFunRetriever(self.cfunset_index).retrieve(request.topic, k=12)
+            examples = curate_stage_examples(request.topic, candidates, self.config)
         prompts = _system_messages(request, examples)
         agents_by_name: Dict[str, Any] = {}
         for name in AGENT_SPECS:
@@ -289,6 +296,7 @@ class AutoGenV02Workflow:
             messages=transcript,
             revision_count=router.revision_count,
             validation_issues=validation_issues,
+            cfunset_example_ids=tuple(item.id for item in examples),
         )
 
 

@@ -8,7 +8,10 @@ from unittest.mock import patch
 
 from openmic.autogen_v02 import _system_messages
 from openmic.humor_benchmark import TOPICS, compare, summarize_automatic
-from openmic.humor_data import CFunRetriever, derive_example, iter_cfunset, prepare_cfunset
+from openmic.humor_data import (
+    CFunRetriever, HumorExample, curate_stage_examples, derive_example,
+    iter_cfunset, prepare_cfunset,
+)
 from openmic.humor_evaluation import aggregate_ratings, analyze_structure, script_contract_issues
 from openmic.models import AgentMessage, ProjectRequest
 
@@ -76,6 +79,9 @@ class HumorGenerationTests(unittest.TestCase):
             self.assertIn("走读或跨校区", prompts[agent])
         non_college = _system_messages(ProjectRequest(topic="通勤", audience="上班族"))
         self.assertNotIn("校园情境核对", non_college["ComedyDirector"])
+        shopping = _system_messages(ProjectRequest(topic="我的网购经历"))
+        for agent in ("ComedyDirector", "JokeWriter", "QualityController"):
+            self.assertIn("‘包邮’指卖家寄送并承担运费", shopping[agent])
 
     def test_structure_proxy_counts_pairs_delay_and_callbacks(self) -> None:
         script = (
@@ -91,6 +97,9 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertEqual(metrics["callback_count"], 2)
         self.assertEqual(metrics["delayed_beats"], 2)
         self.assertGreater(metrics["structure_proxy_0_10"], 4)
+        broken = script.replace("[CALLBACK]\n下一顿饭我也没吃上。", "[CALLBACK]\n")
+        self.assertEqual(analyze_structure(broken, 3)["empty_callback_count"], 1)
+        self.assertEqual(analyze_structure(broken, 3)["callback_count"], 1)
 
     def test_script_contract_catches_observed_format_and_setting_failures(self) -> None:
         parts = []
@@ -109,6 +118,29 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertFalse(any("地铁" in issue for issue in script_contract_issues(
             valid + "我住在校外，走读赶早八要坐地铁。", 3
         )))
+        self.assertTrue(any("汉字上限" in issue for issue in script_contract_issues(
+            valid + "补充" * 400, 3
+        )))
+
+    def test_cfunset_curator_accepts_valid_indices_and_empty_selection(self) -> None:
+        examples = [HumorExample(str(i), "joke_continuation", "铺垫" * 12,
+                                 "包袱" * 6, "train") for i in range(3)]
+        config = SimpleNamespace(api_key="test", base_url="https://example.test", model="test")
+
+        def fake_client(content):
+            return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
+                create=lambda **kwargs: SimpleNamespace(choices=[SimpleNamespace(
+                    message=SimpleNamespace(content=content)
+                )])
+            )))
+
+        with patch("openai.OpenAI", return_value=fake_client('{"selected_indices":[2,0]}')):
+            self.assertEqual([item.id for item in curate_stage_examples("网购", examples, config)], ["2", "0"])
+        with patch("openai.OpenAI", return_value=fake_client('{"selected_indices":[]}')):
+            self.assertEqual(curate_stage_examples("网购", examples, config), [])
+        with patch("openai.OpenAI", return_value=fake_client('{"selected_indices":[9]}')):
+            with self.assertRaises(ValueError):
+                curate_stage_examples("网购", examples, config)
 
     def test_retriever_skips_unsuitable_stage_references(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

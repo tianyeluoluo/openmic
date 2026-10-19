@@ -159,7 +159,7 @@ openmic --backend autogen --content-mode cfunset --cfunset-index artifacts/cfuns
 python -m openmic.humor_benchmark compare --index artifacts/cfunset/index.jsonl
 ```
 
-`download` 支持续传并校验官方 SHA256。`baseline` 与 `cfunset` 使用同一生成协议，后者只添加本地检索的示例。原始数据、派生索引、模型轨迹和密钥均位于 Git 忽略路径或 `.env` 中。
+`download` 支持续传并校验官方 SHA256。`baseline` 与 `cfunset` 使用同一生成协议；后者先从 CFunSet 训练划分检索候选，再调用一次模型筛选最多两条结构参考，所选 ID 保存在轨迹中。原始数据、派生索引、模型轨迹和密钥均位于 Git 忽略路径或 `.env` 中。
 
 ## 文档
 

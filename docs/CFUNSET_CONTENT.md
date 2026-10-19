@@ -32,12 +32,12 @@ python -m openmic.humor_benchmark preview \
 
 根据首轮评分反馈，共享提示加入校园场景核对：住校大学生赶早八默认在宿舍与教学楼之间步行或骑行；若同时出现地铁，须说明走读或跨校区的理由。该约束对两种生成条件一致。已保存的首轮十条轨迹产生于加入此约束之前，不能作为修正后的效果评估；聚合结果和限制见 [CFUNSET_RESULTS.md](CFUNSET_RESULTS.md)。
 
-R1 单人评分之后，写作提示又加入“具体新信息完成反转、避免解释笑点、控制弱包袱数量”的要求；质检提示相应降低复述、策划语泄漏与文化不通顺稿件的评分。程序在模型质检之外硬性检查最终 JokeWriter 脚本的结构标签、双回调及显式的早八地铁场景。检索时会跳过少量不适合校园舞台的成人和吸烟参考。设计依据与局限见 [HUMOR_QUALITY_RUBRIC.md](HUMOR_QUALITY_RUBRIC.md)。这些改动尚未通过新的模型生成和人工评分验证。
+R1 单人评分之后，写作提示又加入“具体新信息完成反转、避免解释笑点、控制弱包袱数量”的要求；质检提示相应降低复述、策划语泄漏与文化不通顺稿件的评分。程序在模型质检之外硬性检查最终 JokeWriter 脚本的结构标签、双回调及显式的早八地铁场景。检索时跳过部分不适合校园舞台的参考。第二轮小样本发现词面相关的短笑话仍可能低质或过时，因此第三轮从训练集检索最多 12 条候选，经一次低温 JSON 模型筛选后最多给 JokeWriter 两条，允许全部淘汰；同时检查脚本长度上限。筛选结果是模型判断，不能当成人工幽默标签，所用示例 ID 记录在轨迹中。设计依据与局限见 [HUMOR_QUALITY_RUBRIC.md](HUMOR_QUALITY_RUBRIC.md)。
 
 两种生成条件使用同一模型、温度、主题扩展、脚本协议与质检流程：
 
 - `baseline`：不提供 CFunSet 示例；
-- `cfunset`：向 `JokeWriter` 加入最多三个相关训练样例，明确要求学习结构而非复制原句。
+- `cfunset`：从训练集候选中挑最多两个舞台适配的结构参考给 `JokeWriter`，明确要求学习结构而非复制原句；候选筛选另调用一次模型 API。
 
 真实生成需要项目既有的 OpenAI-compatible 配置。将 Key 写入 Git 忽略的 `.env`，例如 `OPENMIC_API_KEY`、`OPENMIC_BASE_URL`、`OPENMIC_MODEL`。命令行示例：
 
@@ -63,7 +63,9 @@ python -m openmic.humor_benchmark compare \
 
 `compare` 每完成一条样本就追加一行轨迹；中断后使用同一输出目录可从下一条续跑。续跑前会核对模型、数据版本、随机种子和轨迹顺序；改变实验条件时请使用新的输出目录。如果脚本或质检响应不完整，会最多重试三次，仍不完整则报错且不写入该条轨迹。
 
-首轮实验目录使用旧生成协议。R1 后的改进版在 manifest 中标记 `generation_protocol=r1-feedback-v2`，**不能在首轮输出目录续跑**；新一轮评测请指定新的 `--output`。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
+额度有限时可加 `--max-samples 2`，先生成首主题的一对稿件；之后去掉该参数并使用**同一个输出目录**续跑。十条全部完成后才会写正式盲评模板；自动汇总仍需单独运行 `auto-summary`。保存生成日志时在 Windows 先设 `PYTHONIOENCODING=utf-8`；给 Excel 打开的 CSV 应采用 UTF-8 BOM。
+
+首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，当前加入有效回调检查和用户指出的包邮/自提常识后标记为 `r1-feedback-v4-callbacks`。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
 
 十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数，以及模型自评幽默、文化、结构分的配对差值；这些模型自评分仍不能替代盲评的幽默度与文化适配度。
 

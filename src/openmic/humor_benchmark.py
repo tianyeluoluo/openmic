@@ -9,7 +9,7 @@ import random
 from dataclasses import asdict
 from pathlib import Path
 from statistics import mean
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from openmic.humor_data import CFunRetriever, download_cfunset, prepare_cfunset
 from openmic.humor_evaluation import (
@@ -25,7 +25,7 @@ TOPICS = (
     "地铁通勤",
     "手机电量焦虑",
 )
-GENERATION_PROTOCOL = "r1-feedback-v2"
+GENERATION_PROTOCOL = "r1-feedback-v4-callbacks"
 
 
 def _writer_script(messages: list) -> str:
@@ -35,7 +35,9 @@ def _writer_script(messages: list) -> str:
     return ""
 
 
-def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
+def compare(
+    index: Path, output_dir: Path, *, seed: int = 2025, max_samples: Optional[int] = None
+) -> None:
     from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow, extract_qc_scores
 
     stats_path = index.with_suffix(".stats.json")
@@ -44,7 +46,6 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
         raise ValueError("正式对照实验需要已校验的官方 CFunSet 完整文件")
     output_dir.mkdir(parents=True, exist_ok=True)
     config = AutoGenConfig.from_env()
-    retriever = CFunRetriever(index)
     manifest = {
         "dataset_revision": stats["revision"],
         "dataset_sha256": stats["source_sha256"],
@@ -68,6 +69,8 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
             encoding="utf-8",
         )
     expected = [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")]
+    if max_samples is not None and not 1 <= max_samples <= len(expected):
+        raise ValueError("max_samples 必须在 1 到 10 之间")
     rows: List[Dict[str, object]] = []
     if trace_path.exists():
         with trace_path.open("r", encoding="utf-8") as handle:
@@ -79,6 +82,9 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
     for topic in TOPICS:
         request = ProjectRequest(topic=topic, duration_minutes=3)
         for condition in ("baseline", "cfunset"):
+            if max_samples is not None and len(rows) >= max_samples:
+                print(f"已保存 {len(rows)} 条试验轨迹；下次在同一目录续跑")
+                return
             if len(rows) > expected.index((topic, condition)):
                 continue
             for attempt in range(1, 4):
@@ -112,10 +118,7 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
             row = {
                 "topic": topic,
                 "condition": condition,
-                "cfunset_example_ids": (
-                    [item.id for item in retriever.retrieve(topic)]
-                    if condition == "cfunset" else []
-                ),
+                "cfunset_example_ids": list(getattr(result, "cfunset_example_ids", ())),
                 "model": config.model,
                 "temperature": config.temperature,
                 "approved": result.approved,
@@ -230,6 +233,8 @@ def main() -> None:
     run.add_argument("--index", type=Path, default=Path("artifacts/cfunset/index.jsonl"))
     run.add_argument("--output", type=Path, default=Path("artifacts/content_benchmark"))
     run.add_argument("--seed", type=int, default=2025)
+    run.add_argument("--max-samples", type=int, default=None,
+                     help="先生成前 N 条轨迹，再用同一输出目录续跑")
     automatic = sub.add_parser("auto-summary", help="Summarize completed paired traces without human ratings")
     automatic.add_argument("--traces", type=Path, default=Path("artifacts/content_benchmark/traces.jsonl"))
     summary = sub.add_parser("summarize", help="Aggregate completed blinded ratings")
@@ -248,7 +253,7 @@ def main() -> None:
             for item in items
         ], ensure_ascii=False, indent=2))
     elif args.command == "compare":
-        compare(args.index, args.output, seed=args.seed)
+        compare(args.index, args.output, seed=args.seed, max_samples=args.max_samples)
     elif args.command == "auto-summary":
         result = summarize_automatic(args.traces)
         text = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
