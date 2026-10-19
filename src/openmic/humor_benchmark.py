@@ -77,10 +77,26 @@ def compare(index: Path, output_dir: Path, *, seed: int = 2025) -> None:
         for condition in ("baseline", "cfunset"):
             if len(rows) > expected.index((topic, condition)):
                 continue
-            result = AutoGenV02Workflow(
-                config, content_mode=condition, cfunset_index=index
-            ).run(request)
-            script = _writer_script(result.messages)
+            for attempt in range(1, 4):
+                result = AutoGenV02Workflow(
+                    config, content_mode=condition, cfunset_index=index
+                ).run(request)
+                script = _writer_script(result.messages)
+                qc_messages = [
+                    message.content for message in result.messages
+                    if message.agent == "QualityController"
+                ]
+                final_qc = qc_messages[-1].upper() if qc_messages else ""
+                valid_qc = (
+                    all(label in final_qc for label in ("HUMOR_SCORE", "CULTURE_SCORE", "STRUCTURE_SCORE"))
+                    and any(decision in final_qc for decision in ("DECISION: APPROVED", "DECISION: REVISION_REQUIRED"))
+                    and result.score > 0
+                )
+                if script.strip() and valid_qc:
+                    break
+                if attempt == 3:
+                    raise RuntimeError(f"{topic} / {condition} 的脚本或质检响应不完整；未写入轨迹，可续跑")
+                print(f"{topic} / {condition} 的脚本或质检响应不完整，重试 {attempt}/2")
             row = {
                 "topic": topic,
                 "condition": condition,

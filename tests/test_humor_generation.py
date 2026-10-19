@@ -98,6 +98,7 @@ class HumorGenerationTests(unittest.TestCase):
 
     def test_compare_resumes_without_regenerating_completed_samples(self) -> None:
         calls = []
+        fail_once = {"active": False}
 
         class FakeWorkflow:
             def __init__(self, config, *, content_mode, cfunset_index):
@@ -105,8 +106,15 @@ class HumorGenerationTests(unittest.TestCase):
 
             def run(self, request):
                 calls.append((request.topic, self.condition))
+                qc = ""
+                if not fail_once["active"]:
+                    qc = "HUMOR_SCORE: 8\nCULTURE_SCORE: 8\nSTRUCTURE_SCORE: 8\nDECISION: APPROVED"
+                fail_once["active"] = False
                 return SimpleNamespace(
-                    messages=[AgentMessage("JokeWriter", "[SETUP]铺垫[PUNCHLINE]包袱")],
+                    messages=[
+                        AgentMessage("JokeWriter", "[SETUP]铺垫[PUNCHLINE]包袱"),
+                        AgentMessage("QualityController", qc),
+                    ],
                     approved=True,
                     score=8.0,
                     revision_count=0,
@@ -132,10 +140,12 @@ class HumorGenerationTests(unittest.TestCase):
                 original_lines = trace_path.read_text(encoding="utf-8").splitlines(keepends=True)
                 trace_path.write_text("".join(original_lines[:2]), encoding="utf-8")
                 calls.clear()
+                fail_once["active"] = True
                 compare(index, output)
             self.assertEqual(len(original_lines), 10)
             self.assertEqual(trace_path.read_text(encoding="utf-8").splitlines(keepends=True)[:2], original_lines[:2])
-            self.assertEqual(calls, [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")][2:])
+            expected_calls = [(topic, condition) for topic in TOPICS for condition in ("baseline", "cfunset")][2:]
+            self.assertEqual(calls, expected_calls[:1] + expected_calls)
             summary = summarize_automatic(trace_path)
             self.assertEqual(summary["topic_count"], 5)
             self.assertEqual(summary["aggregate"]["qc_score_0_10"]["mean_paired_delta"], 0)
