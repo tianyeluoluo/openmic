@@ -70,6 +70,8 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertIn("目标 1062-1438 个汉字", enriched["JokeWriter"])
         self.assertIn("CFunSet", enriched["JokeWriter"])
         self.assertNotIn("CFunSet", baseline["JokeWriter"])
+        self.assertIn("可信的日常目标和流程", baseline["JokeWriter"])
+        self.assertIn("全文只追随一个主目标", baseline["JokeWriter"])
         self.assertIn("保留 JokeWriter 的原文与 [SETUP]", enriched["PerformanceCoach"])
 
     def test_college_prompts_check_early_class_setting(self) -> None:
@@ -82,6 +84,7 @@ class HumorGenerationTests(unittest.TestCase):
         shopping = _system_messages(ProjectRequest(topic="我的网购经历"))
         for agent in ("ComedyDirector", "JokeWriter", "QualityController"):
             self.assertIn("‘包邮’指卖家寄送并承担运费", shopping[agent])
+            self.assertIn("不要凭空写成额外收费", shopping[agent])
 
     def test_structure_proxy_counts_pairs_delay_and_callbacks(self) -> None:
         script = (

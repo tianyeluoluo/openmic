@@ -25,7 +25,7 @@ TOPICS = (
     "地铁通勤",
     "手机电量焦虑",
 )
-GENERATION_PROTOCOL = "r1-feedback-v5-qc-routing"
+GENERATION_PROTOCOL = "r1-feedback-v7-one-throughline"
 
 
 def _writer_script(messages: list) -> str:
