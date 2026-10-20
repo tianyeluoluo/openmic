@@ -1,11 +1,15 @@
 import unittest
 import json
+import csv
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 
 from openmic.autogen_v02 import AutoGenConfig
 from openmic.humor_quality_loop import (
     _validate_judgment, accepted, audit_script, paired_beats, rewrite_script,
-    selection_key, surgical_edit_script,
+    selection_key, surgical_edit_script, check_distinct_pilot, grounding_issues,
+    validate_blind_sheet,
 )
 from openmic.models import ProjectRequest
 
@@ -57,12 +61,41 @@ class HumorQualityLoopTests(unittest.TestCase):
             "cfunset_humor_signal": {"mean_probability": 0.4},
             "fact_check": {"realism": 4, "blocking_issues": []},
             "judge": {"scores": {
-                "humor": 3, "culture": 4, "oral": 4, "structure": 4, "realism": 4,
+                "humor": 4, "culture": 4, "oral": 4, "structure": 4, "realism": 4,
             }, "blocking_issues": []},
         }}
         self.assertFalse(accepted(flawed["audit"]))
         self.assertTrue(accepted(solid["audit"]))
         self.assertGreater(selection_key(solid), selection_key(flawed))
+
+    def test_campus_gate_is_blocked_as_a_story_grounding_error(self) -> None:
+        self.assertTrue(grounding_issues(
+            "7点59我贴着教学楼闸机，掏卡刷开，早餐挂在闸机上。"
+        ))
+        self.assertFalse(grounding_issues("我跑进教学楼，早餐差点掉在楼梯上。"))
+        self.assertFalse(grounding_issues("我进图书馆时刷卡过闸机。"))
+
+    def test_near_identical_revision_is_not_a_second_pilot_sample(self) -> None:
+        first = "[SETUP] 我在食堂排队，前面同学替室友买了三份早餐。" * 8
+        revised = first.replace("买了三份早餐", "买了四份早餐", 1)
+        with self.assertRaisesRegex(ValueError, "局部修订"):
+            check_distinct_pilot(first, revised)
+        self.assertLess(check_distinct_pilot(
+            first, "[SETUP] 我去洗衣房取衣服，发现烘干机里有另一人的袜子。" * 8
+        ), 0.82)
+
+    def test_blind_sheet_reads_utf8_bom_and_rejects_local_revision(self) -> None:
+        first = "[SETUP] 我在食堂排队，前面同学替室友买了三份早餐。" * 8
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "pilot.csv"
+            with path.open("w", encoding="utf-8-sig", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=("sample_id", "topic", "script"))
+                writer.writeheader()
+                writer.writerow({"sample_id": "Q01", "topic": "食堂排队", "script": first})
+                writer.writerow({"sample_id": "Q02", "topic": "食堂排队",
+                                 "script": first.replace("三份", "四份", 1)})
+            with self.assertRaisesRegex(ValueError, "局部修订"):
+                validate_blind_sheet(path)
 
     def test_structured_rewrite_renders_parseable_spaced_callbacks(self) -> None:
         data = {

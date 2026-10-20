@@ -9,6 +9,8 @@ saved so selection cannot silently discard an unfavorable generated sample.
 from __future__ import annotations
 
 import argparse
+import csv
+import difflib
 import hashlib
 import json
 import re
@@ -24,8 +26,55 @@ from openmic.models import ProjectRequest
 
 SCORE_NAMES = ("humor", "culture", "oral", "structure", "realism")
 BEAT_TAG = re.compile(r"\[(SETUP|PUNCHLINE|CALLBACK)\]", re.I)
-AUDIT_PROTOCOL = "grounded-rubric-v2-dual"
-REWRITE_PROTOCOL = "structured-beats-v1"
+AUDIT_PROTOCOL = "grounded-rubric-v3-campus-and-humor"
+REWRITE_PROTOCOL = "structured-beats-v2-campus"
+TEACHING_GATE = re.compile(
+    r"教学楼.{0,16}(?:闸机|刷卡进|刷卡开|门禁)|(?:闸机|门禁).{0,16}教学楼"
+)
+
+
+def pilot_similarity(first: str, second: str) -> float:
+    """Detect a local revision masquerading as a second blind-rating sample."""
+    def normalize(script: str) -> str:
+        return re.sub(r"\s+", "", BEAT_TAG.sub("", script))
+
+    return difflib.SequenceMatcher(
+        None, normalize(first), normalize(second), autojunk=False
+    ).ratio()
+
+
+def check_distinct_pilot(first: str, second: str, *, max_similarity: float = 0.82) -> float:
+    similarity = pilot_similarity(first, second)
+    if similarity > max_similarity:
+        raise ValueError(
+            f"两篇盲评稿相似度 {similarity:.1%}，属于同一稿的局部修订；"
+            "请换独立情节，不要重复要求评分"
+        )
+    return similarity
+
+
+def validate_blind_sheet(path: Path, *, max_similarity: float = 0.82) -> int:
+    """Refuse a purported two-script pilot that only compares local revisions."""
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) < 2 or any(not row.get("topic") or not row.get("script") for row in rows):
+        raise ValueError("盲评表至少需要两篇非空稿件及主题")
+    comparisons = 0
+    for first_index, first in enumerate(rows):
+        for second in rows[first_index + 1:]:
+            if first["topic"] == second["topic"]:
+                check_distinct_pilot(first["script"], second["script"],
+                                     max_similarity=max_similarity)
+                comparisons += 1
+    if not comparisons:
+        raise ValueError("盲评表没有同主题配对稿件")
+    return comparisons
+
+
+def grounding_issues(script: str) -> List[str]:
+    """User-confirmed campus defaults that must not hinge on invented access rules."""
+    return (["普通白天上课情节出现教学楼闸机/门禁；需改成正常进楼，特殊楼宇须先核实"]
+            if TEACHING_GATE.search(script) else [])
 
 
 def paired_beats(script: str) -> List[Dict[str, str]]:
@@ -102,6 +151,9 @@ def judge_script(script: str, request: ProjectRequest, config: AutoGenConfig,
         "逐组确认：正常日常目标与流程；可能发生的小意外；人物为解决问题而造成的冲突；"
         "包袱出现前文没有的新事实、动作或对白。追踪同一主目标、物品位置、时间和人物地点。"
         "抽象比喻、反复说包邮、复述铺垫、解释笑点、无铺垫的新订单不能算强包袱。"
+        "连续的小麻烦不等于幽默：要有真实偶然事件、人为了应对而产生的戏剧冲突、"
+        "以及值得观众意外的具体揭底；若只是排队、缺钱、漏油的流水账，humor 不高于 2。"
+        "普通白天去教学楼上课通常直接进楼，不默认刷闸机；不要拿教学楼门禁制造收尾包袱。"
         "不得凭空假定上门取件收费、快递员进入宿舍、取件必须用学生证等具体服务规则；"
         "若故事没有交代规则却依赖它推进冲突，应列问题。"
         "逐项 1–5 分：humor 看真正意外且有力的反转，culture 看生活/校园逻辑和中文语境，"
@@ -161,6 +213,7 @@ def fact_check_script(script: str, request: ProjectRequest, config: AutoGenConfi
         "先找全文唯一主目标；逐组追踪人物地点、时间、商品/包裹和交易状态。"
         "若突然出现不服务于主目标的第二笔、第三笔订单或退货，列为阻断问题；"
         "若前一段已寄出的物品下一段又在手中，列为阻断问题。"
+        "普通白天进教学楼上课一般没有闸机；若稿件靠教学楼闸机造成冲突，列为阻断问题。"
         "核查工作人员是否像现实中一样保护顾客物品；把顾客包裹垫桌脚、穿用顾客衣物等"
         "无故越界行为，必须列为阻断问题。"
         "日常里确实可能发生的小意外不需提前预告；不要把合理偶然本身当成漏洞。"
@@ -235,6 +288,7 @@ def fact_check_script(script: str, request: ProjectRequest, config: AutoGenConfi
 def audit_script(script: str, request: ProjectRequest, model: Mapping[str, object],
                  config: AutoGenConfig, *, client: Optional[Any] = None) -> Dict[str, Any]:
     contract = script_contract_issues(script, request.duration_minutes, request.audience)
+    grounded = grounding_issues(script)
     structure = analyze_structure(script, request.duration_minutes)
     signal = script_humor_signal(script, model)
     if not paired_beats(script):
@@ -242,6 +296,7 @@ def audit_script(script: str, request: ProjectRequest, model: Mapping[str, objec
         return {
             "protocol": AUDIT_PROTOCOL,
             "contract_issues": contract or ["无法解析铺垫包袱标签"],
+            "grounding_issues": grounded,
             "structure": structure,
             "cfunset_humor_signal": signal,
             "judge": {
@@ -259,6 +314,7 @@ def audit_script(script: str, request: ProjectRequest, model: Mapping[str, objec
     return {
         "protocol": AUDIT_PROTOCOL,
         "contract_issues": contract,
+        "grounding_issues": grounded,
         "structure": structure,
         "cfunset_humor_signal": signal,
         "judge": judgment,
@@ -271,11 +327,12 @@ def accepted(audit: Mapping[str, Any]) -> bool:
     facts = audit["fact_check"]
     return (
         not audit["contract_issues"]
+        and not audit.get("grounding_issues", [])
         and not judge["blocking_issues"]
         and not facts["blocking_issues"]
         and judge["scores"]["realism"] >= 4
         and facts["realism"] >= 4
-        and judge["scores"]["humor"] >= 3
+        and judge["scores"]["humor"] >= 4
     )
 
 
@@ -286,6 +343,7 @@ def selection_key(candidate: Mapping[str, Any]) -> tuple:
     return (
         int(accepted(audit)),
         -len(audit["contract_issues"]),
+        -len(audit.get("grounding_issues", [])),
         -len(audit["judge"]["blocking_issues"] + audit["fact_check"]["blocking_issues"]),
         audit["fact_check"]["realism"], scores["realism"],
         scores["humor"], scores["culture"],
@@ -333,6 +391,7 @@ def rewrite_script(script: str, audit: Mapping[str, Any], request: ProjectReques
     judgment = audit["judge"]
     feedback = {
         "contract_issues": audit["contract_issues"],
+        "grounding_issues": audit.get("grounding_issues", []),
         "blocking_issues": judgment["blocking_issues"],
         "fact_check_issues": audit["fact_check"]["blocking_issues"],
         "beat_findings": judgment["beat_findings"],
@@ -554,7 +613,7 @@ def improve(request: ProjectRequest, config: AutoGenConfig, scorer_path: Path,
         "review_model": review_config.model,
         "content_mode": content_mode, "audit_protocol": AUDIT_PROTOCOL,
         "rewrite_protocol": REWRITE_PROTOCOL,
-        "generation_protocol": "r1-feedback-v7-one-throughline",
+        "generation_protocol": "r1-feedback-v8-campus-realism",
         "scorer_kind": model["kind"], "scorer_dataset_sha256": model.get("dataset_sha256"),
         "seed_sha256": hashlib.sha256(seed_text.encode("utf-8")).hexdigest() if seed_text else None,
     }
@@ -675,6 +734,9 @@ def improve(request: ProjectRequest, config: AutoGenConfig, scorer_path: Path,
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train-aware audit and bounded self-revision")
     sub = parser.add_subparsers(dest="command", required=True)
+    pilot = sub.add_parser("check-pilot", help="Reject nearly duplicate blind-rating scripts")
+    pilot.add_argument("--sheet", type=Path, required=True)
+    pilot.add_argument("--max-similarity", type=float, default=0.82)
     audit = sub.add_parser("audit", help="Audit an existing script without generating")
     audit.add_argument("--script", type=Path, required=True)
     audit.add_argument("--topic", required=True)
@@ -697,6 +759,16 @@ def main() -> None:
     run.add_argument("--max-replans", type=int, default=1)
     run.add_argument("--max-surgeries", type=int, default=1)
     args = parser.parse_args()
+    if args.command == "check-pilot":
+        if not 0 <= args.max_similarity <= 1:
+            parser.error("--max-similarity must be 0..1")
+        try:
+            comparisons = validate_blind_sheet(args.sheet,
+                                               max_similarity=args.max_similarity)
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps({"same_topic_pairs_checked": comparisons}, ensure_ascii=False))
+        return
     config = AutoGenConfig.from_env()
     review_config = replace(config, model=args.review_model) if args.review_model else config
     request = ProjectRequest(topic=args.topic, duration_minutes=args.duration)
@@ -706,6 +778,7 @@ def main() -> None:
         _save_checkpoint(args.output, result)
         print(json.dumps({"accepted": accepted(result), "scores": result["judge"]["scores"],
                           "fact_realism": result["fact_check"]["realism"],
+                          "grounding_issues": result["grounding_issues"],
                           "blocking_issues": result["judge"]["blocking_issues"] +
                           result["fact_check"]["blocking_issues"]},
                          ensure_ascii=False, indent=2))

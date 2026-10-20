@@ -75,6 +75,8 @@ python -m openmic.humor_quality_loop improve \
 
 生成模型仍由 `.env` 的 `OPENMIC_MODEL` 指定；`--review-model` 可让独立审稿和改写使用另一个可用模型 ID。输出 JSON 会保留每次候选与双审稿；中断后同一路径可续跑，同一实验的模型与协议不匹配时会拒绝混写。也可用 `--seed-script` 从已有稿件开始，节约重新生成的 API 花费。模型审稿和本地分类器都有偏差，最终效果仍须新主题的人类盲评确认；若没有候选达到门槛，命令会明确输出 `accepted=false`。小样本验证及失败案例见 [CFUNSET_RESULTS.md](CFUNSET_RESULTS.md)。
 
+R1 的新评分揭示食堂试验的两篇盲评稿有约 95% 文本重合，实际上只是原稿和局部修订，不能当作两篇独立笑话。制作新的同主题盲评表后先运行 `python -m openmic.humor_quality_loop check-pilot --sheet <CSV路径>`；同主题任意两篇超过默认 82% 相似度会拒绝评审，已填分的旧表不要覆盖。新质量协议 `r1-feedback-v8-campus-realism` 还把普通白天去教学楼上课默认写成直接进楼；特殊房间/时段门禁需要先核实并交代，不能临时发明闸机作为包袱。独立审稿达到幽默 4/5 且没有阻断问题才自动通过。这些门槛是筛选策略，不是已经验证的人类质量提升。
+
 ## 量化评估与盲评
 
 ```bash
@@ -91,7 +93,7 @@ python -m openmic.humor_benchmark compare \
 
 额度有限时可加 `--max-samples 2`，先生成首主题的一对稿件；之后去掉该参数并使用**同一个输出目录**续跑。十条全部完成后才会写正式盲评模板；自动汇总仍需单独运行 `auto-summary`。保存生成日志时在 Windows 先设 `PYTHONIOENCODING=utf-8`；给 Excel 打开的 CSV 应采用 UTF-8 BOM。
 
-首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，有效回调和包邮/自提常识版标记为 `r1-feedback-v4-callbacks`。`r1-feedback-v5-qc-routing` 进一步把质检文本中明确列出“修改意见”或“不合常理”却给 `APPROVED` 的结果送回写作 Agent，返工上限仍为两次。`r1-feedback-v6-situational` 加强逐段日常真实感、偶然差错与冲突检查，并扩大检索候选池。当前 `r1-feedback-v7-one-throughline` 还要求单一主目标、主线物品与相邻场景状态连续；模型质检逐组追踪物品、地点和交易状态。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
+首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，有效回调和包邮/自提常识版标记为 `r1-feedback-v4-callbacks`。`r1-feedback-v5-qc-routing` 进一步把质检文本中明确列出“修改意见”或“不合常理”却给 `APPROVED` 的结果送回写作 Agent，返工上限仍为两次。`r1-feedback-v6-situational` 加强逐段日常真实感、偶然差错与冲突检查，并扩大检索候选池。`r1-feedback-v7-one-throughline` 要求单一主目标、主线物品与相邻场景状态连续；当前 `r1-feedback-v8-campus-realism` 再处理教学楼门禁常识与流水账式弱包袱。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
 
 十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数，以及模型自评幽默、文化、结构分的配对差值；这些模型自评分仍不能替代盲评的幽默度与文化适配度。
 
