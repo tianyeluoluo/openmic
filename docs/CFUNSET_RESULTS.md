@@ -70,4 +70,6 @@ v6 同题新生成 baseline / CFunSet 两篇，分别 658 / 674 汉字、结构�
 
 v8 以未参与该轮人工纠错的新主题“雨天拿错伞”做了一次有界运行（本地忽略目录 `artifacts/quality_loop_umbrella_v8.json`）：初稿、一次整篇修订和一次局部修订共三稿，均未过自动门槛。三稿独立审稿幽默都是 2/5，事实核查真实感均为 4/5；初稿和整篇修订分别有 6、5 个包袱阻断问题，局部修订降至 2 个，但新增人物行为缺少铺垫和道具状态矛盾。所有稿件结构协议达标，说明当前主要瓶颈是**偶然事件之后缺少有力而可信的戏剧反转**，不是标签或字数。未做人工盲评，不能把自动审稿分等同观众感受；该试验保留 `accepted=false`，不展示为质量提升。
 
+v9 增加扩写前的核心情境搜索与独立评分。仍用“雨天拿错伞”作开发主题，`deepseek-flash` 提案、`deepseek-v4-pro` 审稿的两轮共十个情境，偶然性全部只有 3/5，没有达到四维均 ≥4 的门槛；故停止于情境阶段，**没有生成脚本**（`artifacts/quality_loop_umbrella_v9_premise.json`）。加强“一次偶然、后续靠人物选择”的提示后，`deepseek-v4-pro` 同时提案与审稿的两轮仍全部未过偶然性门槛（`artifacts/quality_loop_umbrella_v9_pro.json`）。再把第一轮低分理由明确反馈给第二轮提案，人物冲突评分有所改善，但偶然性仍全部 3/5（`artifacts/quality_loop_umbrella_v9_feedback.json`）。这验证了程序会**阻止弱核心情境扩写**，未验证它能选出高质量单口稿。评分来自模型自己，且同一主题反复用于开发，不能当独立效果评估。
+
 在桌面仓库使用 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl` 可重算此表。人工评分合并为 `ratings.csv` 后，再按 `docs/CFUNSET_CONTENT.md` 运行 `summarize`。所有数值都来自已保存的十条轨迹；本报告没有复制 CFunSet 原文或生成脚本。

@@ -2,6 +2,7 @@ import unittest
 
 from openmic.autogen_v02 import (
     SpeakerRouter, _extract_score, _qc_has_actionable_issues, extract_qc_scores,
+    _system_messages,
 )
 from openmic.models import ProjectRequest
 from openmic.workflow import OpenMicWorkflow
@@ -18,6 +19,13 @@ class FakeGroupChat:
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_premise_brief_reaches_director_writer_and_critic(self) -> None:
+        prompts = _system_messages(
+            ProjectRequest(topic="雨天拿错伞"), premise_brief="只因拿错一把伞，主动去还伞引发冲突"
+        )
+        for role in ("ComedyDirector", "JokeWriter", "QualityController"):
+            self.assertIn("主动去还伞引发冲突", prompts[role])
+
     def test_mock_workflow_runs_all_five_agents(self) -> None:
         result = OpenMicWorkflow().run(ProjectRequest(topic="我的网购经历"))
 

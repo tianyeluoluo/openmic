@@ -9,7 +9,7 @@ from openmic.autogen_v02 import AutoGenConfig
 from openmic.humor_quality_loop import (
     _validate_judgment, accepted, audit_script, paired_beats, rewrite_script,
     selection_key, surgical_edit_script, check_distinct_pilot, grounding_issues,
-    validate_blind_sheet,
+    validate_blind_sheet, search_premise,
 )
 from openmic.models import ProjectRequest
 
@@ -96,6 +96,42 @@ class HumorQualityLoopTests(unittest.TestCase):
                                  "script": first.replace("三份", "四份", 1)})
             with self.assertRaisesRegex(ValueError, "局部修订"):
                 validate_blind_sheet(path)
+
+    def test_premise_screening_selects_only_grounded_comic_conflict(self) -> None:
+        candidates = [{
+            "normal_goal": "雨天拿伞去教室上课", "chance_event": f"误拿第{i}把同款伞",
+            "human_choice": "主动去找失主交换", "conflict": "另一位同学误以为自己的伞又丢了",
+            "payoff": "两人把伞一放才发现拿反了",
+        } for i in range(5)]
+        reviews = [{
+            "index": i, "plausibility": 4, "chance": 4, "conflict": 4,
+            "payoff": 4 if i == 3 else 2,
+            "fatal_flaw": "" if i == 3 else "只是确认拿错",
+            "reason": "只有第三个情境包含人物选择引出的反作用",
+        } for i in range(1, 6)]
+        responses = iter(({"candidates": candidates}, {"reviews": reviews}))
+
+        class FakeClient:
+            def __init__(self):
+                self.models = []
+                self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+            def create(self, **kwargs):
+                self.models.append(kwargs["model"])
+                return SimpleNamespace(choices=[SimpleNamespace(
+                    message=SimpleNamespace(content=json.dumps(next(responses), ensure_ascii=False))
+                )])
+
+        client = FakeClient()
+        result = search_premise(
+            ProjectRequest(topic="雨天拿错伞"),
+            AutoGenConfig(api_key="test", base_url=None, model="generator"),
+            AutoGenConfig(api_key="test", base_url=None, model="critic"),
+            client=client,
+        )
+        self.assertTrue(result["approved"])
+        self.assertEqual(result["selected"]["chance_event"], "误拿第2把同款伞")
+        self.assertEqual(client.models, ["generator", "critic"])
 
     def test_structured_rewrite_renders_parseable_spaced_callbacks(self) -> None:
         data = {

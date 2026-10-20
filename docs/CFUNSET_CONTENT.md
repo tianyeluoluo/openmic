@@ -61,7 +61,7 @@ python -m openmic.humor_scorer \
 
 训练脚本核对固定数据 SHA256，按归一化文本去重并排除标签冲突；相同文本只能进入同一划分。哈希固定划为 train/validation/test，验证集只用于概率校准，测试集不参与拟合。权重和原始语料保存在 Git 忽略的 `artifacts/`，仓库只提交训练代码与汇总指标。该模型估计的是**CFunSet 短文本被标为“幽默”的概率**，不是三分钟单口的人工 1–5 分幽默度。
 
-独立质量闭环在 `openmic.humor_quality_loop`：先运行现有五 Agent 生成，再把每组铺垫包袱送入本地模型；程序硬查标签、回调与时长；两次独立的 DeepSeek 审稿分别评包袱/文化/口语/结构及现实流程/跨段连续性。具体问题须附对应组号和脚本原文；未通过则让 JokeWriter 以固定 JSON 铺垫/包袱格式改写。若同一情节反复失真，可换全新日常冲突；若只有几组弱包袱，可只改被点名的组。所有候选和审稿记录逐步保存，择优时先看结构与现实问题，再看评分；本地分类概率只作末位参考，不能覆盖真实流程错误。
+独立质量闭环在 `openmic.humor_quality_loop`：默认先提出五个不同核心情境，由另一模型独立给日常逻辑、偶然性、人物冲突和揭底各打 1–5 分；至少一个情境四项都达到 4 且无致命问题才扩写，第二轮会读第一轮审稿理由。若两轮都不通过，保存 `failure=no_premise_passed` 并停止，避免把弱想法扩写成三分钟流水账；可用 `--no-premise-search` 关闭这一步。获准情境送入现有五 Agent 生成，再把每组铺垫包袱送入本地模型；程序硬查标签、回调与时长；两次独立的 DeepSeek 审稿分别评包袱/文化/口语/结构及现实流程/跨段连续性。具体问题须附对应组号和脚本原文；未通过则让 JokeWriter 以固定 JSON 铺垫/包袱格式改写。若同一情节反复失真，可换全新日常冲突；若只有几组弱包袱，可只改被点名的组。所有候选和审稿记录逐步保存，择优时先看结构与现实问题，再看评分；本地分类概率只作末位参考，不能覆盖真实流程错误。
 
 ```bash
 python -m openmic.humor_quality_loop improve \
@@ -75,7 +75,7 @@ python -m openmic.humor_quality_loop improve \
 
 生成模型仍由 `.env` 的 `OPENMIC_MODEL` 指定；`--review-model` 可让独立审稿和改写使用另一个可用模型 ID。输出 JSON 会保留每次候选与双审稿；中断后同一路径可续跑，同一实验的模型与协议不匹配时会拒绝混写。也可用 `--seed-script` 从已有稿件开始，节约重新生成的 API 花费。模型审稿和本地分类器都有偏差，最终效果仍须新主题的人类盲评确认；若没有候选达到门槛，命令会明确输出 `accepted=false`。小样本验证及失败案例见 [CFUNSET_RESULTS.md](CFUNSET_RESULTS.md)。
 
-R1 的新评分揭示食堂试验的两篇盲评稿有约 95% 文本重合，实际上只是原稿和局部修订，不能当作两篇独立笑话。制作新的同主题盲评表后先运行 `python -m openmic.humor_quality_loop check-pilot --sheet <CSV路径>`；同主题任意两篇超过默认 82% 相似度会拒绝评审，已填分的旧表不要覆盖。新质量协议 `r1-feedback-v8-campus-realism` 还把普通白天去教学楼上课默认写成直接进楼；特殊房间/时段门禁需要先核实并交代，不能临时发明闸机作为包袱。独立审稿达到幽默 4/5 且没有阻断问题才自动通过。这些门槛是筛选策略，不是已经验证的人类质量提升。
+R1 的新评分揭示食堂试验的两篇盲评稿有约 95% 文本重合，实际上只是原稿和局部修订，不能当作两篇独立笑话。制作新的同主题盲评表后先运行 `python -m openmic.humor_quality_loop check-pilot --sheet <CSV路径>`；同主题任意两篇超过默认 82% 相似度会拒绝评审，已填分的旧表不要覆盖。`r1-feedback-v8-campus-realism` 把普通白天去教学楼上课默认写成直接进楼；特殊房间/时段门禁需要先核实并交代，不能临时发明闸机作为包袱。当前质量闭环标记为 `r1-feedback-v9-premise-search`，增加扩写前的核心情境筛选；独立审稿达到幽默 4/5 且没有阻断问题才自动通过。这些门槛是筛选策略，不是已经验证的人类质量提升。
 
 ## 量化评估与盲评
 
@@ -93,7 +93,7 @@ python -m openmic.humor_benchmark compare \
 
 额度有限时可加 `--max-samples 2`，先生成首主题的一对稿件；之后去掉该参数并使用**同一个输出目录**续跑。十条全部完成后才会写正式盲评模板；自动汇总仍需单独运行 `auto-summary`。保存生成日志时在 Windows 先设 `PYTHONIOENCODING=utf-8`；给 Excel 打开的 CSV 应采用 UTF-8 BOM。
 
-首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，有效回调和包邮/自提常识版标记为 `r1-feedback-v4-callbacks`。`r1-feedback-v5-qc-routing` 进一步把质检文本中明确列出“修改意见”或“不合常理”却给 `APPROVED` 的结果送回写作 Agent，返工上限仍为两次。`r1-feedback-v6-situational` 加强逐段日常真实感、偶然差错与冲突检查，并扩大检索候选池。`r1-feedback-v7-one-throughline` 要求单一主目标、主线物品与相邻场景状态连续；当前 `r1-feedback-v8-campus-realism` 再处理教学楼门禁常识与流水账式弱包袱。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
+首轮实验目录使用旧生成协议。R1 后第一轮提示改进标记为 `r1-feedback-v2`，下一轮筛选与长度控制标记为 `r1-feedback-v3-curated`，有效回调和包邮/自提常识版标记为 `r1-feedback-v4-callbacks`。`r1-feedback-v5-qc-routing` 进一步把质检文本中明确列出“修改意见”或“不合常理”却给 `APPROVED` 的结果送回写作 Agent，返工上限仍为两次。`r1-feedback-v6-situational` 加强逐段日常真实感、偶然差错与冲突检查，并扩大检索候选池。`r1-feedback-v7-one-throughline` 要求单一主目标、主线物品与相邻场景状态连续；基准对照当前 `r1-feedback-v8-campus-realism` 再处理教学楼门禁常识与流水账式弱包袱，质量闭环另加 v9 情境预筛选。不同协议须使用不同 `--output`，不能在旧目录混写轨迹。首轮旧轨迹仍可直接用 `auto-summary` 离线汇总。
 
 十条轨迹完成后可运行 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl`，生成 `automatic_summary.json`。它按五个主题计算 baseline 与 CFunSet 条件的结构代理分、铺垫包袱数、回调数、字数，以及模型自评幽默、文化、结构分的配对差值；这些模型自评分仍不能替代盲评的幽默度与文化适配度。
 
