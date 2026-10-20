@@ -79,6 +79,10 @@ R1 的新评分揭示食堂试验的两篇盲评稿有约 95% 文本重合，实
 
 ## 量化评估与盲评
 
+### v10：公开表演机制与双路径情境
+
+当前质量闭环协议为 `r1-feedback-v10-reference-mechanisms`。情境提案同时尝试「普通细节重解」和「单次小意外」两条路径，每轮五条、每种至少两条；独立审稿把原来的“偶然性”改成“触发点自然度”，并要求人物选择与另一个人的正常目标发生有可见后果的冲突。第二轮须更换前一轮的触发与应对动作。研究来源、借鉴边界与失败案例见 [COMEDY_REFERENCE_MECHANISMS.md](COMEDY_REFERENCE_MECHANISMS.md) 和 [CFUNSET_RESULTS.md](CFUNSET_RESULTS.md)。v9 的旧结果与 v10 不混算。
+
 ```bash
 python -m openmic.humor_benchmark compare \
   --index artifacts/cfunset/index.jsonl \

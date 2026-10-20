@@ -9,7 +9,7 @@ from openmic.autogen_v02 import AutoGenConfig
 from openmic.humor_quality_loop import (
     _validate_judgment, accepted, audit_script, paired_beats, rewrite_script,
     selection_key, surgical_edit_script, check_distinct_pilot, grounding_issues,
-    validate_blind_sheet, search_premise,
+    validate_blind_sheet, search_premise, _recycled_premises,
 )
 from openmic.models import ProjectRequest
 
@@ -99,12 +99,14 @@ class HumorQualityLoopTests(unittest.TestCase):
 
     def test_premise_screening_selects_only_grounded_comic_conflict(self) -> None:
         candidates = [{
-            "normal_goal": "雨天拿伞去教室上课", "chance_event": f"误拿第{i}把同款伞",
+            "normal_goal": "雨天拿伞去教室上课",
+            "trigger_type": "observed_detail" if i < 2 else "minor_chance",
+            "trigger": f"第{i}次看见伞架上挂着同款伞",
             "human_choice": "主动去找失主交换", "conflict": "另一位同学误以为自己的伞又丢了",
             "payoff": "两人把伞一放才发现拿反了",
         } for i in range(5)]
         reviews = [{
-            "index": i, "plausibility": 4, "chance": 4, "conflict": 4,
+            "index": i, "plausibility": 4, "trigger": 4, "conflict": 4,
             "payoff": 4 if i == 3 else 2,
             "fatal_flaw": "" if i == 3 else "只是确认拿错",
             "reason": "只有第三个情境包含人物选择引出的反作用",
@@ -130,8 +132,58 @@ class HumorQualityLoopTests(unittest.TestCase):
             client=client,
         )
         self.assertTrue(result["approved"])
-        self.assertEqual(result["selected"]["chance_event"], "误拿第2把同款伞")
+        self.assertEqual(result["selected"]["trigger"], "第2次看见伞架上挂着同款伞")
         self.assertEqual(client.models, ["generator", "critic"])
+
+    def test_second_proposal_round_rejects_recycled_incidents(self) -> None:
+        first = [{
+            "normal_goal": "放学后去打印店取展示材料",
+            "trigger_type": "observed_detail" if i < 2 else "minor_chance",
+            "trigger": f"打印机显示第{i}份材料尚未完成",
+            "human_choice": "我决定站在柜台前催店员先打我的",
+            "conflict": "排在前面的同学也需要材料",
+            "payoff": "回到教室才发现手里是草稿",
+        } for i in range(5)]
+        fresh = [{
+            "normal_goal": "展示前检查同组同学的讲稿",
+            "trigger_type": "observed_detail" if i < 2 else "minor_chance",
+            "trigger": f"第{i}位同学拿起讲稿发现页角折住",
+            "human_choice": "我请同学照着折页先练最后一段",
+            "conflict": "负责开头的人需要按原顺序练习",
+            "payoff": "折页展开后才发现那页是结尾",
+        } for i in range(5)]
+        self.assertEqual(len(_recycled_premises(first, first)), 5)
+        self.assertFalse(_recycled_premises(fresh, first))
+        bad_reviews = [{
+            "index": i, "plausibility": 4, "trigger": 4, "conflict": 3, "payoff": 4,
+            "fatal_flaw": "", "reason": "人物目标冲突太弱",
+        } for i in range(1, 6)]
+        good_reviews = [{
+            "index": i, "plausibility": 4, "trigger": 4, "conflict": 4, "payoff": 4,
+            "fatal_flaw": "", "reason": "人物目标形成具体冲突",
+        } for i in range(1, 6)]
+        responses = iter(({"candidates": first}, {"reviews": bad_reviews},
+                          {"candidates": first}, {"candidates": fresh},
+                          {"reviews": good_reviews}))
+
+        class FakeClient:
+            def __init__(self):
+                self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+            def create(self, **_kwargs):
+                return SimpleNamespace(choices=[SimpleNamespace(
+                    message=SimpleNamespace(content=json.dumps(next(responses), ensure_ascii=False))
+                )])
+
+        result = search_premise(
+            ProjectRequest(topic="小组展示"),
+            AutoGenConfig(api_key="test", base_url=None, model="generator"),
+            AutoGenConfig(api_key="test", base_url=None, model="critic"),
+            client=FakeClient(),
+        )
+        self.assertTrue(result["approved"])
+        self.assertEqual(result["duplicate_rejections"], 1)
+        self.assertEqual(result["selected"]["trigger"], fresh[0]["trigger"])
 
     def test_structured_rewrite_renders_parseable_spaced_callbacks(self) -> None:
         data = {

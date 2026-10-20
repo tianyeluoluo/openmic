@@ -73,3 +73,11 @@ v8 以未参与该轮人工纠错的新主题“雨天拿错伞”做了一次�
 v9 增加扩写前的核心情境搜索与独立评分。仍用“雨天拿错伞”作开发主题，`deepseek-flash` 提案、`deepseek-v4-pro` 审稿的两轮共十个情境，偶然性全部只有 3/5，没有达到四维均 ≥4 的门槛；故停止于情境阶段，**没有生成脚本**（`artifacts/quality_loop_umbrella_v9_premise.json`）。加强“一次偶然、后续靠人物选择”的提示后，`deepseek-v4-pro` 同时提案与审稿的两轮仍全部未过偶然性门槛（`artifacts/quality_loop_umbrella_v9_pro.json`）。再把第一轮低分理由明确反馈给第二轮提案，人物冲突评分有所改善，但偶然性仍全部 3/5（`artifacts/quality_loop_umbrella_v9_feedback.json`）。这验证了程序会**阻止弱核心情境扩写**，未验证它能选出高质量单口稿。评分来自模型自己，且同一主题反复用于开发，不能当独立效果评估。
 
 在桌面仓库使用 `python -m openmic.humor_benchmark auto-summary --traces artifacts/content_benchmark/traces.jsonl` 可重算此表。人工评分合并为 `ratings.csv` 后，再按 `docs/CFUNSET_CONTENT.md` 运行 `summarize`。所有数值都来自已保存的十条轨迹；本报告没有复制 CFunSet 原文或生成脚本。
+
+## v10：公开表演机制参考与双路径情境（开发性记录）
+
+将[公开片段与作者写作课](COMEDY_REFERENCE_MECHANISMS.md)整理成五种可迁移机制，只向情境提案提供抽象结构，不存台词。候选同时覆盖日常细节重解与单次小意外，审稿把“偶然性”改为“触发点自然度”，并要求人物选择制造双向目标冲突和可见后果。
+
+两次新题目调用使用 `deepseek-flash` 提案、`deepseek-v4-pro` 审稿。`artifacts/quality_loop_printshop_v10.json`（“打印店取小组展示讲稿”）两轮共十条，均未通过：第一轮冲突最高 3/5；第二轮仍多为 3/5，且反复使用前一轮情境。`artifacts/quality_loop_presentation_v10.json`（“小组展示上台前的最后一次练习”）两轮共十条，每条审稿均为日常逻辑 4、触发点 4、冲突 3、揭底 4；第二轮五条事实上与第一轮逐条相同。两次均 `failure=no_premise_passed`、**没有扩写完整稿**，也没有新人工评分；不能宣称幽默度提升。
+
+第二次运行后加了程序级跨轮去重：比较触发事件与应对动作，发现重复即最多重提两次，仍重复就停止，不再为同一情境反复付审稿费。此去重和更严格冲突提示已通过单元测试，**尚未做新的 API 验证**。模型此前的 4/5 揭底评分不应解读成真正有笑点：例如出现投影笔控制幕布、手机震起粉笔灰等牵强因果；人工通读仍有必要。下一次若继续，应先用真实经历或更短的 30 秒段落做校准，再决定是否扩成三分钟，避免在弱核心故事上耗费 API。
