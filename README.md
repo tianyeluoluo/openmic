@@ -111,7 +111,16 @@ openmic \
   --audience "大学生"
 ```
 
-命令行输出五个 Agent 的完整消息、质检分数和返工次数。语音合成目前从 Streamlit 页面触发。
+准备好 `.env` 和 CFunSet 索引后，也可以只给主题；默认使用真实 AutoGen 和 CFunSet 检索增强。提供亲历场景时，`--context` 会作为各 Agent 必须遵守的事实：
+
+```bash
+openmic --topic "宿舍借充电器" \
+  --context "手机剩2%，室友桌上的充电器其实是我昨天借给他的；关系正常，不涉及偷窃。"
+```
+
+命令行默认显示最终脚本和质检状态；加 `--verbose` 可查看五个 Agent 的完整轨迹。质量闭环与更严格的独立审稿见 [CFUNSET_CONTENT.md](docs/CFUNSET_CONTENT.md)。模型批准并不等于真人觉得好笑。语音合成目前从 Streamlit 页面触发。
+
+`--duration` 可选 1–5 分钟，是时长上限参考；短情境可用 `--duration 1`，不要求填满。
 
 ## 测试
 
@@ -146,11 +155,11 @@ docs/                  # PRD、会议议程与 Smoke Test 记录
 
 ## 下一阶段
 
-后续开发集中在 CFunSet 数据管线、中文幽默生成对照实验、可执行的语音表演控制、人工盲评和课程交付。具体范围、验收指标和五人分工见 [PRD](docs/PRD.md)。
+文本生成的数据管线、参考检索与质量闭环已实现；后续重点是新题材真人盲评、长稿持续笑感和自然多层回调验证。具体范围、验收指标和五人分工见 [PRD](docs/PRD.md)。
 
 ## CFunSet 中文幽默生成
 
-文本生成模块提供主题扩展、按时长规划的 setup-punchline、两次回调、CFunSet 检索增强和五主题盲评对照。完整的数据来源、方法和评测协议见 [CFUNSET_CONTENT.md](docs/CFUNSET_CONTENT.md)。
+文本生成模块提供主题扩展、setup-punchline 与自然回调、CFunSet 检索增强和五主题盲评对照。组数由故事决定，回调可选。完整的数据来源、方法和评测协议见 [CFUNSET_CONTENT.md](docs/CFUNSET_CONTENT.md)。
 
 ```bash
 python -m openmic.humor_benchmark download
@@ -163,6 +172,12 @@ python -m openmic.humor_benchmark compare --index artifacts/cfunset/index.jsonl
 
 ## 文档
 
+当前任务要求、近例改编参数和未达标项见 [任务二优化与验收边界](docs/TASK2_OPTIMIZATION.md)。近例改编可保留 CFunSet 原梗并明确署源；质量闭环按成稿的绝对幽默度与语境筛选，可选择最小适配，再有次数上限地修订或改写新故事。与原例的分差仅为可选诊断，不要求改编胜过原例；真实笑感仍需人评。
+
+新增本地研究模块：[中文笑话数据集训练与正例学习](docs/HUMOR_LEARNING.md)。已在3,365条人工标注笑话上拟合幽默等级／手法输出层，并提供可选的正例记忆实验；目前预测相关性较弱，没有据此宣称生成质量提升，也未微调 DeepSeek。常规 CFunSet 流程默认不启用这项实验。
+
+- [文本生成版本说明与复现](docs/TASK2_RELEASE.md)
+- [文本生成专题汇报（HTML，约7–8分钟）](presentation/text_generation.html) · [中文讲稿与逐页计时](presentation/text_generation_notes.md)
 - [中期汇报（英文 HTML）](presentation/midterm.html) · [编辑与分工说明](presentation/README.md)
 - [产品需求文档](docs/PRD.md)
 - [第一次项目分工会](docs/MEETING_01.md)

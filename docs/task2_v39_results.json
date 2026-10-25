@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-10-23",
+  "release_date": "2026-10-25",
+  "batch_design": "Three fixed original-with-reference topics and one adaptation topic; not a randomized route experiment.",
+  "generator_model_id_requested": "deepseek-flash",
+  "review_model_id_requested": "deepseek-v4-pro",
+  "human_ratings_added": 0,
+  "generator_temperature": 0.8,
+  "review_temperature": 0.2,
+  "cases": [
+    {
+      "id": "V39-A",
+      "topic": "下决心早点睡，却总给晚睡找理由",
+      "source_mode": "original",
+      "source_ids": [
+        "a1ae15fb0b09ffcb1d4a5defe192e9ba197c555d401c371ff832024ec20a1841",
+        "246fc465bfde731be81127cf7a4c1e8bcc7b259ad389a4486dd1d186682d314d"
+      ],
+      "model_scores": {
+        "humor": 3,
+        "culture": 4,
+        "oral": 4,
+        "structure": 4,
+        "realism": 4
+      },
+      "accepted": false,
+      "annotation_repair": true,
+      "original_pipeline_accepted": false,
+      "spoken_characters": 317
+    },
+    {
+      "id": "V39-B",
+      "topic": "和朋友聚餐时，总怕自己显得太能吃",
+      "source_mode": "original",
+      "source_ids": [
+        "40fdbd9f11172b43f7924759308d5497193924b4e8dfb5a41fcbd4d08e6b19fb",
+        "e26ba80d26ab852f6bcfbc65475834d2b851792cabe146f15348652b06608555"
+      ],
+      "model_scores": {
+        "humor": 4,
+        "culture": 4,
+        "oral": 4,
+        "structure": 4,
+        "realism": 4
+      },
+      "accepted": true,
+      "annotation_repair": true,
+      "original_pipeline_accepted": false,
+      "spoken_characters": 307
+    },
+    {
+      "id": "V39-C",
+      "topic": "旅游拍照，总想拍出很松弛的样子",
+      "source_mode": "original",
+      "source_ids": [
+        "943068bc8c9e2479bd10a511a13b064e303c53a4c5a78f634aeea4733dcb518c",
+        "89f4c065226bb2b7816fb7a6d2c1036297ecd73e87a21f11e44e855527d1f9c2"
+      ],
+      "model_scores": {
+        "humor": 4,
+        "culture": 4,
+        "oral": 4,
+        "structure": 4,
+        "realism": 4
+      },
+      "accepted": true,
+      "annotation_repair": false,
+      "original_pipeline_accepted": true,
+      "spoken_characters": 383
+    },
+    {
+      "id": "V39-D",
+      "topic": "理发时想让理发师少剪一点",
+      "source_mode": "adaptation",
+      "source_ids": [
+        "0b2bd2f7a02213a7eab002c6311e99a61ee8097464ceb1cdcfda588f8bdf1133"
+      ],
+      "model_scores": {
+        "humor": 3,
+        "culture": 4,
+        "oral": 4,
+        "structure": 4,
+        "realism": 4
+      },
+      "accepted": false,
+      "annotation_repair": false,
+      "original_pipeline_accepted": false,
+      "spoken_characters": 167
+    }
+  ],
+  "notes": [
+    "A/B annotation repairs preserve all spoken text including whitespace.",
+    "A humor changed from 4 to 3 under re-review of the same prose.",
+    "B callback depth changed from 1 to 2 under re-review; semantic hierarchy is not established.",
+    "Full generation traces, source text and local keys remain outside Git."
+  ]
+}

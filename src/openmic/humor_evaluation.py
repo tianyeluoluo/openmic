@@ -34,7 +34,9 @@ def analyze_structure(script: str, duration_minutes: int) -> Dict[str, object]:
     characters = len(_HAN.findall(_TAGS.sub("", script)))
     target = duration_minutes * 250
     length_ratio = characters / target if target else 0.0
-    required_pairs = duration_minutes + 2
+    # A few well-placed turns can carry one story; this proxy is descriptive,
+    # not a quota that the writer has to fill with weak punchlines.
+    required_pairs = max(2, min(duration_minutes, 4))
     callback_positions = []
     for index, (tag, start, end) in enumerate(tags):
         if tag != "CALLBACK":
@@ -72,12 +74,20 @@ def script_contract_issues(script: str, duration_minutes: int, audience: str = "
     """Catch format and setting failures that a model QC approval may miss."""
     metrics = analyze_structure(script, duration_minutes)
     issues = []
-    if metrics["paired_beats"] < duration_minutes + 2:
-        issues.append("铺垫-包袱标签组数不足")
-    if metrics["delayed_beats"] < min(3, duration_minutes + 2):
-        issues.append("延时铺垫不足")
-    if metrics["callback_count"] < 2 or not metrics["spaced_callbacks"]:
-        issues.append("缺少相隔足够距离的双回调标签")
+    if metrics["paired_beats"] < 1:
+        issues.append("缺少可解析的铺垫-包袱标签")
+    if metrics["setup_count"] != metrics["paired_beats"] or metrics["punchline_count"] != metrics["paired_beats"]:
+        issues.append("铺垫-包袱标签未配对")
+    if metrics["empty_callback_count"]:
+        issues.append("存在空回调标签")
+    tags = list(_TAGS.finditer(script))
+    for index, tag in enumerate(tags):
+        if tag.group(1).upper() not in ("SETUP", "PUNCHLINE"):
+            continue
+        end = tags[index + 1].start() if index + 1 < len(tags) else len(script)
+        if not re.search(r"[\u3400-\u9fffA-Za-z0-9]", script[tag.end():end]):
+            issues.append("铺垫或包袱缺少可朗读正文")
+            break
     if metrics["han_characters"] > round(duration_minutes * 250 * 1.15):
         issues.append("脚本超过目标时长的汉字上限")
     if (

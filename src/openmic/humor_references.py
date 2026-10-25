@@ -14,10 +14,11 @@ REFERENCE_MECHANISMS: List[Dict[str, str]] = [
     {
         "id": "zhou_noise_reframe",
         "source": "腾讯视频官方发布：周奇墨装修噪音片段",
-        "url": "https://www.youtube.com/watch?v=35DUOSac4-k",
+        "url": "https://www.youtube.com/watch?v=JGJJfWGxYew",
         "trigger_type": "observed_detail",
-        "mechanism": "日常烦恼保持真实，一个重复的细节被讲述者赋予私人含义；"
-                     "人物据此行动后，细节的重复反过来暴露其心理冲突。",
+        "mechanism": "先用人人熟悉且讨厌的重复噪声建立共同体验；再比较谁承受干扰、"
+                     "谁享有成果，让同一段声音的节奏在末尾揭示利益不对称。"
+                     "观察型单口可以没有新事故或面对面争吵。",
         "avoid": "不能复制演员的拟声、台词或房产相关原情节。",
     },
     {
@@ -30,12 +31,13 @@ REFERENCE_MECHANISMS: List[Dict[str, str]] = [
         "avoid": "不能照搬点餐经过、人物模仿或原句。",
     },
     {
-        "id": "pang_social_self_consciousness",
+        "id": "pang_habit_misread",
         "source": "腾讯视频官方发布：庞博替家人购物片段",
         "url": "https://www.youtube.com/watch?v=0MSMGcXZWKY",
         "trigger_type": "observed_detail",
-        "mechanism": "普通任务本身没问题，讲述者过度担心别人怎么看自己；"
-                     "为显得自然采取的动作反而使自己更显眼。",
+        "mechanism": "先用替别人完成普通购物任务时的手忙脚乱建立共情；"
+                     "一个讲述者习以为常的动作被旁人误读，误会引发可理解但略夸张的"
+                     "集体反应；末尾揭示旁人以为的原因与讲述者原本的目的错位。",
         "avoid": "不能照搬购买的商品、保安情节或原句；旁人反应须符合日常。",
     },
     {

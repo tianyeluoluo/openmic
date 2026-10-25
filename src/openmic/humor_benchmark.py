@@ -15,6 +15,8 @@ from openmic.humor_data import CFunRetriever, download_cfunset, prepare_cfunset
 from openmic.humor_evaluation import (
     RATING_DIMENSIONS, aggregate_ratings, analyze_structure, script_contract_issues,
 )
+from openmic.humor_generation import clean_writer_script
+from openmic.humor_craft import GENERATION_PROTOCOL
 from openmic.models import ProjectRequest
 
 
@@ -25,13 +27,12 @@ TOPICS = (
     "地铁通勤",
     "手机电量焦虑",
 )
-GENERATION_PROTOCOL = "r1-feedback-v8-campus-realism"
 
 
 def _writer_script(messages: list) -> str:
     for message in reversed(messages):
         if message.agent == "JokeWriter":
-            return message.content
+            return clean_writer_script(message.content)
     return ""
 
 
@@ -55,6 +56,7 @@ def compare(
         "duration_minutes": 3,
         "blind_shuffle_seed": seed,
         "generation_protocol": GENERATION_PROTOCOL,
+        "adaptation_probability": 0,
     }
     manifest_path = output_dir / "manifest.json"
     trace_path = output_dir / "traces.jsonl"
@@ -89,7 +91,8 @@ def compare(
                 continue
             for attempt in range(1, 4):
                 result = AutoGenV02Workflow(
-                    config, content_mode=condition, cfunset_index=index
+                    config, content_mode=condition, cfunset_index=index,
+                    adaptation_probability=0,
                 ).run(request)
                 script = _writer_script(result.messages)
                 qc_messages = [

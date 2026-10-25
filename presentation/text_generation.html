@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en" data-revision="task2-v39-release-20261025">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMic · Chinese Comedy Generation</title><style>
+/* === BASE: fixed 1920 × 1080 stage === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* === THEME: white background, default system fonts, minimal decoration === */
+:root { --stage-bg:#f1f3f5; --slide-bg:#fff; --ink:#202b38; --muted:#66717e; --blue:#2869b0; --line:#d7e0e8; }
+* { box-sizing:border-box; }
+body { color:var(--ink); font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif; }
+h1,h2,h3,p { margin:0; }
+.slide { padding:84px 110px; }
+h1 { font-size:112px; font-weight:650; letter-spacing:-3px; }
+h2 { font-size:58px; line-height:1.3; font-weight:600; }
+.eyebrow { font-size:26px; color:var(--muted); margin-bottom:25px; }
+.subtitle { font-size:38px; margin-top:24px; color:var(--muted); }
+footer { position:absolute; bottom:47px; left:110px; right:110px; display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:23px; }
+svg { display:block; width:100%; overflow:hidden; font-family:inherit; }
+.diagram { position:absolute; left:110px; top:295px; width:1700px; height:625px; }
+.box { fill:#fff; stroke:#c8d5e2; stroke-width:2; }
+.tint { fill:#f3f7fc; stroke:#b9cde2; stroke-width:2; }
+.link { stroke:#567190; stroke-width:3; fill:none; }
+svg text { fill:var(--ink); text-anchor:middle; dominant-baseline:middle; }
+svg .major { font-size:30px; font-weight:600; }
+svg .small { font-size:25px; fill:var(--muted); }
+svg .english { font-size:21px; fill:var(--muted); }
+svg .accent { fill:var(--blue); }
+.title-copy { margin-top:100px; }
+.title-flow { margin-top:90px; width:1700px; height:230px; }
+.names { font-size:28px; color:var(--muted); margin-top:75px; }
+/* === TODO: leave unmerged team sections empty === */
+.placeholder { position:absolute; left:110px; right:110px; top:310px; height:570px; border:2px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:25px; }
+.todo { font-size:80px; color:#aab5c1; font-weight:500; }
+.placeholder p { font-size:32px; color:var(--muted); }
+.placeholder .hint { font-size:26px; color:#8793a0; }
+/* === CONTROLS: outside the slide canvas === */
+.deck-controls { display:flex; gap:8px; align-items:center; background:#ffffffed; padding:7px 12px; border:1px solid #d7e0e8; border-radius:6px; }
+button { font:inherit; cursor:pointer; background:white; color:#263a51; border:1px solid #d7e0e8; border-radius:4px; padding:6px 12px; }
+button:hover { background:#edf3fa; }
+button:disabled { opacity:.4; cursor:default; }
+button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#count { font-size:14px; min-width:48px; text-align:center; }
+.edit-hotzone { position:fixed; top:0; left:0; width:85px; height:70px; z-index:1001; }
+.edit-toggle { position:fixed; top:14px; left:14px; z-index:1002; opacity:0; pointer-events:none; }
+.edit-toggle.show,.edit-toggle.active { opacity:1; pointer-events:auto; }
+body.editing [data-edit] { outline:2px dashed #a6bfdc; outline-offset:6px; }
+.edit-help { position:fixed; top:15px; left:130px; color:#526577; background:#fff; padding:8px; font-size:14px; z-index:1002; display:none; }
+body.editing .edit-help { display:block; }
+@page { size:1920px 1080px; margin:0; }
+@media print {
+ .edit-hotzone,.edit-toggle,.edit-help { display:none!important; }
+ [data-edit] { outline:none!important; }
+ * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+
+/* Task 2 uses the same fixed canvas, fonts, colors and navigation as midterm.html. */
+.content { margin-top:58px; }
+.lead { font-size:37px; line-height:1.5; max-width:1580px; }
+.body { font-size:32px; line-height:1.55; }
+.muted { color:var(--muted); }
+.accent { color:var(--blue); }
+.small-copy { font-size:26px; line-height:1.45; color:var(--muted); }
+.source { position:absolute; left:110px; right:110px; bottom:136px; font-size:23px; line-height:1.45; color:var(--muted); }
+.source a { color:inherit; text-decoration:underline; text-underline-offset:4px; }
+.pipeline { list-style:none; display:grid; grid-template-columns:repeat(4,1fr); padding:0; margin:0; gap:44px; }
+.pipeline li { position:relative; padding:29px 26px; min-height:172px; border:2px solid var(--line); background:#fff; }
+.pipeline li+li:before { content:'→'; position:absolute; left:-39px; top:60px; font-size:36px; color:#567190; }
+.pipeline .name { font-size:30px; font-weight:600; display:block; margin-bottom:14px; }
+.pipeline .detail { font-size:26px; line-height:1.45; color:var(--muted); display:block; }
+.pipeline .highlight { background:#f3f7fc; border-color:#b9cde2; }
+.data-summary { display:flex; align-items:baseline; gap:40px; margin:0 0 48px; }
+.big-number { font-size:100px; color:var(--blue); font-weight:600; line-height:1.18; letter-spacing:-2px; }
+.data-summary .description { font-size:35px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:80px; }
+.column-title { font-size:37px; font-weight:600; padding-bottom:20px; margin-bottom:24px; border-bottom:2px solid var(--line); }
+.route-weight { color:var(--blue); font-size:56px; font-weight:600; margin-right:20px; }
+.spaced p+p { margin-top:23px; }
+.callout { margin-top:42px; padding:23px 0 23px 28px; border-left:5px solid var(--blue); font-size:31px; line-height:1.5; }
+.topic { font-size:34px; color:var(--muted); margin-bottom:34px; }
+.beats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:44px; }
+.beat { border-top:3px solid var(--line); padding-top:25px; }
+.beat-number { font-size:28px; color:var(--blue); margin-bottom:16px; }
+.beat h3 { font-size:32px; font-weight:600; margin-bottom:18px; }
+.quote { font-size:35px; line-height:1.65; }
+.meaning { margin-top:23px; font-size:27px; color:var(--muted); line-height:1.5; }
+.dialogue { margin-top:35px; }
+.dialogue-row { display:grid; grid-template-columns:310px 1fr; align-items:center; gap:40px; padding:26px 0; border-bottom:1px solid var(--line); }
+.dialogue-label { font-size:27px; color:var(--muted); }
+.dialogue-row .quote { font-size:39px; line-height:1.5; }
+.gates { display:grid; grid-template-columns:1fr 1fr; gap:80px; margin-bottom:37px; }
+.gate { border-bottom:2px solid var(--line); padding-bottom:26px; }
+.gate h3 { font-size:30px; font-weight:500; margin-bottom:13px; }
+.gate .threshold { font-size:46px; color:var(--blue); }
+table { width:100%; border-collapse:collapse; font-size:30px; line-height:1.45; }
+th { text-align:left; font-size:27px; color:var(--muted); font-weight:500; border-bottom:2px solid var(--line); padding:16px 20px; }
+td { padding:20px; border-bottom:1px solid var(--line); vertical-align:top; }
+th:first-child,td:first-child { padding-left:0; }
+.metric-table td { padding-top:12px; padding-bottom:12px; font-size:28px; }
+.result-table td { padding-top:10px; padding-bottom:10px; }
+.result-table .score { font-size:40px; font-weight:600; color:var(--blue); }
+.research-title { font-size:35px; font-weight:600; margin-bottom:24px; }
+.metric-number { font-size:70px; color:var(--blue); font-weight:600; margin:27px 0 10px; }
+.limitation-list { padding-left:34px; margin:0; font-size:33px; line-height:1.55; }
+.limitation-list li+li { margin-top:26px; }
+.cover-task { font-size:31px; color:var(--blue); margin-bottom:23px; }
+.cover-title { font-size:105px; line-height:1.15; letter-spacing:-2px; }
+.cover-subtitle { font-size:38px; color:var(--muted); margin-top:27px; }
+.cover-flow { margin-top:68px; }
+.cover-meta { font-size:28px; color:var(--muted); margin-top:41px; }
+@media print { .slide {break-inside:avoid;} }
+</style></head>
+<body><div class="deck-viewport"><main class="deck-stage" id="deckStage">
+<!-- Speaker notes: 约35秒。介绍本人负责文本生成；使用检索与提示工程，不声称微调了生成大模型。全套约7分40秒。 -->
+<section class="slide active" data-owner="text-generation" aria-label="Chinese comedy generation">
+
+<div class="title-copy"><p class="cover-task" data-edit>OpenMic · Task 02</p>
+<h1 class="cover-title" data-edit>Chinese comedy<br>generation</h1>
+<p class="cover-subtitle" data-edit>CFunSet references, character logic and grounded review</p></div>
+<ol class="pipeline cover-flow">
+<li><span class="name" data-edit>Everyday topic</span><span class="detail" data-edit>Audience and real context</span></li>
+<li class="highlight"><span class="name" data-edit>CFunSet references</span><span class="detail" data-edit>Expectation and reveal</span></li>
+<li><span class="name" data-edit>Comedy script</span><span class="detail" data-edit>Natural spoken Chinese</span></li>
+<li><span class="name" data-edit>Grounded review</span><span class="detail" data-edit>Humor and continuity</span></li>
+</ol><p class="cover-meta" data-edit>Prompt engineering · DeepSeek API · 25 October 2026</p>
+
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 01 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约55秒。164200是混合任务记录，不是164200篇优质笑话。原始版本固定并验哈希；当前索引14002，只有12572训练参考进入检索。解释卡也可能错，程序只核验引句，不能当作原数据金标签。 -->
+<section class="slide" data-owner="text-generation" aria-label="CFunSet reference pipeline">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>CFunSet reference pipeline</h2></header>
+<div class="content">
+<div class="data-summary"><span class="big-number" data-edit>164,200</span><span class="description" data-edit>mixed-task source records</span></div>
+<ol class="pipeline">
+<li><span class="name" data-edit>Filter tasks</span><span class="detail" data-edit>Joke generation<br>and continuation</span></li>
+<li><span class="name" data-edit>Clean and deduplicate</span><span class="detail" data-edit>14,002 references<br>Stable text hashes</span></li>
+<li><span class="name" data-edit>Fixed split</span><span class="detail" data-edit>12,572 training<br>1,430 validation</span></li>
+<li class="highlight"><span class="name" data-edit>Retrieve training only</span><span class="detail" data-edit>Topic-first BM25<br>Model selects useful examples</span></li>
+</ol>
+<div class="callout" data-edit>Each selected reference carries quoted evidence of the expectation, reveal and information change.</div>
+<p class="small-copy" style="margin-top:28px" data-edit>Setup/punchline boundaries are derived heuristically, not gold dataset labels.</p>
+</div>
+<p class="source"><a href="https://huggingface.co/datasets/ZhenghanYU/CFunSet" target="_blank" rel="noopener">CFunSet data card</a> · <a href="https://arxiv.org/abs/2503.20417" target="_blank" rel="noopener">Yu, Hu &amp; Wan, 2025</a> · Counts from the pinned local preparation manifest</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 02 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约50秒。这是抽样尝试比例，不保证输出75%都像健身卡稿。近例不强求超过原作；自主创作借结构而不复制人物和原句。面向大学生不要求故事强行校园化。 -->
+<section class="slide" data-owner="text-generation" aria-label="Two writing routes">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Two writing routes</h2></header>
+<div class="content two-col">
+<div class="spaced"><h3 class="column-title"><span class="route-weight" data-edit>25%</span><span data-edit>Source-preserving adaptation</span></h3>
+<p class="body" data-edit>Keep the source event, necessary context and effective reveal.</p>
+<p class="body" data-edit>Change only compatible details. A strong short joke can stay short.</p>
+<p class="body" data-edit>Record the source ID and check which premises make its humor work.</p></div>
+<div class="spaced"><h3 class="column-title"><span class="route-weight" data-edit>75%</span><span data-edit>Original writing with references</span></h3>
+<p class="body" data-edit>Transfer the expectation change or speaking rhythm into new content.</p>
+<p class="body" data-edit>Start with a funny moment or an experience. Character habits can connect several situations.</p>
+<p class="body" data-edit>Keep reactions, inner thoughts and coincidences when they fit the person and context.</p></div>
+</div><div class="callout" style="margin-top:38px" data-edit>These are default routing probabilities. Adaptation can fall back when no compatible source is found.</div>
+<p class="source">Implementation: humor_adaptation.py, humor_generation.py, autogen_v02.py · No generator weight updates</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 03 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约60秒。先让大家理解日均便宜，再把亏钱当买自由，最后续费少亏却更满意。信息落在句末让听众自己理解。这里展示人物逻辑发展，不把三个段落都硬说成多层回调。引用的是v38旧稿精修版，不混入最新四题的独立计数。 -->
+<section class="slide" data-owner="text-generation" aria-label="Topic expansion and reveal timing">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Topic expansion and reveal timing</h2></header>
+<div class="content"><p class="topic" data-edit>Example topic: a gym membership that I keep avoiding</p>
+<div class="beats">
+<div class="beat"><p class="beat-number" data-edit>01 / Establish a belief</p><h3 data-edit>Membership feels cheap</h3><p class="quote" data-edit>“一年一千二，一天三块多，比奶茶便宜。”</p><p class="meaning" data-edit>I frame spending as a good investment.</p></div>
+<div class="beat"><p class="beat-number" data-edit>02 / Shift the accounting</p><h3 data-edit>Skipping buys freedom</h3><p class="quote" data-edit>“三块买一晚自由，这理财收益率还挺高。”</p><p class="meaning" data-edit>The same logic now excuses avoiding exercise.</p></div>
+<div class="beat"><p class="beat-number" data-edit>03 / Return with a consequence</p><h3 data-edit>Renewal reduces daily loss</h3><p class="quote" data-edit>“现在每天只亏两块五，心里还觉得捡了便宜。”</p><p class="meaning" data-edit>Renewing exposes the character’s persistent self-justification.</p></div>
+</div><p class="body" style="margin-top:47px" data-edit>The character’s logic stays consistent while each situation changes its consequence.</p></div>
+<p class="source">Selected excerpts from the locally edited v38 gym draft · Ending shortened after editorial feedback · Not a new API sample</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 04 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约60秒。先交代小口快吃，再按三句慢慢讲，每个中文包袱后停一两秒。原文两句之间还有我没停、我换勺子，朋友回应跟着动作走。回调存在，但独立模型先给深度1，后给2，因此不宣称可靠多层已经达标。 -->
+<section class="slide" data-owner="text-generation" aria-label="Case study: eating like a printer">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Case study: eating like a printer</h2></header>
+<div class="content"><p class="lead" data-edit>To seem less hungry, I take tiny bites, very quickly.</p>
+<div class="dialogue">
+<div class="dialogue-row"><span class="dialogue-label" data-edit>A new comparison</span><p class="quote" data-edit>“哥，你这不是饭量小，你这是打印机进纸。”</p></div>
+<div class="dialogue-row"><span class="dialogue-label" data-edit>The turntable stops</span><p class="quote" data-edit>他伸手把转盘一按：“行了，卡纸了。”</p></div>
+<div class="dialogue-row"><span class="dialogue-label" data-edit>The plate is removed</span><p class="quote" data-edit>他直接把那盘端走：“行了，没纸了。”</p></div>
+</div><p class="body" style="margin-top:36px" data-edit>Two callbacks develop the metaphor through concrete actions.</p>
+<p class="small-copy" style="margin-top:14px" data-edit>Reviewers assigned nested depth 1 or 2 to the same prose. The hierarchy still needs human checking.</p></div>
+<p class="source">V39-B · CFunSet-informed original · Model humor 4/5 after label correction · No new human rating</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 05 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约55秒。先区分两套量尺：内部0到10与独立审稿1到5不是直接换算。内容说得通不代表好笑，文化和结构高分不能补偿幽默低分。人物已经知道真相也可以打趣，只阻断有原句依据的明确矛盾；最后仍需要真实听众。 -->
+<section class="slide" data-owner="text-generation" aria-label="Quality control">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Quality control</h2></header>
+<div class="content">
+<div class="gates"><div class="gate"><h3 data-edit>Five-agent quality control</h3><p class="threshold" data-edit>Humor ≥ 7 / 10</p><p class="small-copy" data-edit>Mean ≥ 7 / 10, with no unresolved issues</p></div>
+<div class="gate"><h3 data-edit>Separate rubric and fact audit</h3><p class="threshold" data-edit>Humor ≥ 4 / 5</p><p class="small-copy" data-edit>Reality, context and format checks also apply</p></div></div>
+<table class="metric-table"><thead><tr><th>Dimension</th><th>What the reviewer checks</th></tr></thead><tbody>
+<tr><td data-edit>Humor</td><td data-edit>Actual surprise and funny reactions, beyond fluent narration</td></tr>
+<tr><td data-edit>Culture and oral style</td><td data-edit>Understandable Chinese context and natural spoken phrasing</td></tr>
+<tr><td data-edit>Structure</td><td data-edit>Coherent development, reveal timing and useful callbacks</td></tr>
+<tr><td data-edit>Reality and continuity</td><td data-edit>Who knows what, object states and causal consequences</td></tr>
+</tbody></table><p class="small-copy" style="margin-top:27px" data-edit>Quote and order checks ground the diagnosis. Same-family model scores remain fallible.</p></div>
+<p class="source">Independent quality loop: humor_quality_loop.py · Text evidence audit: humor_craft.py · The two scoring scales are not interchangeable</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 06 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约50秒。四个题目不是一个段子改四个标题；三篇自主创作，一篇近例。B和C比较值得试读，A和D明确保留为不足案例。A改的只是标签却从4变3，这说明模型打分会变动。四题不足以证明方法总体提高，也不是随机75/25实验。 -->
+<section class="slide" data-owner="text-generation" aria-label="Four-topic development batch">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Four-topic development batch</h2></header>
+<div class="content"><p class="lead" data-edit>Two drafts passed the current automated checks.</p>
+<table class="result-table" style="margin-top:31px"><thead><tr><th>Topic</th><th>Writing route</th><th>Model humor</th><th>Outcome</th></tr></thead><tbody><tr><td data-edit>V39-A · Early bedtime</td><td data-edit>Original</td><td class="score" data-edit>3 / 5</td><td data-edit>Below humor threshold</td></tr><tr><td data-edit>V39-B · Eating with friends</td><td data-edit>Original</td><td class="score" data-edit>4 / 5</td><td data-edit>Passed after label repair</td></tr><tr><td data-edit>V39-C · Relaxed travel photos</td><td data-edit>Original</td><td class="score" data-edit>4 / 5</td><td data-edit>Passed</td></tr><tr><td data-edit>V39-D · A shorter haircut</td><td data-edit>Adaptation</td><td class="score" data-edit>3 / 5</td><td data-edit>Below humor threshold</td></tr></tbody></table>
+<p class="body" style="margin-top:22px" data-edit>Early-bedtime prose scored 4 before label repair and 3 afterwards, despite unchanged wording.</p>
+<p class="small-copy" style="margin-top:14px" data-edit>Fixed three-original / one-adaptation design. Same provider family. No new blinded human evaluation.</p></div>
+<p class="source">Development run, 23 October 2026 · Selected model scores after format review · Summary: docs/TASK2_RELEASE.md</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 07 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约50秒。这页准确交代实际训练范围。训练过的是短文本识别器和幽默等级/手法输出头，生成大模型没有LoRA。AUC能衡量二分类，不能说预测观众笑声准确率75%。CMHL上等级相关性只有0.267和0.220，故不把它当可靠的笑感裁判。 -->
+<section class="slide" data-owner="text-generation" aria-label="Local scoring experiments">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Local scoring experiments</h2></header>
+<div class="content two-col">
+<div><h3 class="research-title" data-edit>CFunSet humor recognition</h3><p class="body" data-edit>4,186 cleaned binary-label records<br>Character n-grams with Naive Bayes</p><p class="metric-number" data-edit>0.7522</p><p class="body" data-edit>Held-out ROC AUC<br>835 test records</p><p class="small-copy" style="margin-top:28px" data-edit>The target is a short-text label, not stand-up laugh strength.</p></div>
+<div><h3 class="research-title" data-edit>Rated-joke learning, optional</h3><p class="body" data-edit>3,365 CMHL jokes<br>Character features and frozen BGE heads</p><p class="metric-number" data-edit>0.267 / 0.220</p><p class="body" data-edit>Held-out rating Spearman<br>Character / BGE, 728 test jokes</p><p class="small-copy" style="margin-top:28px" data-edit>Weak signals. Extra high-rated references stay off by default.</p></div>
+</div><div class="callout" data-edit>DeepSeek generation uses retrieval and prompts. Its weights were not fine-tuned.</div>
+<p class="source">Local held-out reports: docs/CFUNSET_RESULTS.md and docs/HUMOR_LEARNING.md · CMHL source: SamTseng/Chinese_Humor_MultiLabeled</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 08 / 09</span></footer>
+</section>
+<!-- Speaker notes: 约45秒。概括已经实现的方法和仍缺的效果证据。新题短稿最多两分钟，不能说系统3到5分钟持续高幽默已经验证。最后标签尾置问题仍需自动修标注，本轮只对两条具体样本在本地修过。结束后邀请围绕数据、结构和评分提问。 -->
+<section class="slide" data-owner="text-generation" aria-label="Current limits and next experiments">
+<header><p class="eyebrow" data-edit>Task 02 / Text generation</p><h2 data-edit>Current limits and next experiments</h2></header>
+<div class="content two-col">
+<div><h3 class="column-title" data-edit>Current implementation</h3><ul class="limitation-list">
+<li data-edit>Traceable CFunSet references and two writing routes</li>
+<li data-edit>Context-aware scripts, delayed reveals and evidence-based callback review</li>
+<li data-edit>Bounded revision, reproducible checkpoints and 101 offline tests</li>
+</ul></div>
+<div><h3 class="column-title" data-edit>Evidence still needed</h3><ul class="limitation-list">
+<li data-edit>Fresh human ratings across new topics</li>
+<li data-edit>Stable humor over full 3–5 minute performances</li>
+<li data-edit>Agreement on meaningful nested callbacks</li>
+</ul></div>
+</div><div class="callout" style="margin-top:52px" data-edit>Next engineering fix: repair misplaced labels without rewriting otherwise usable prose.</div>
+<p class="source">Task 02 scope: yzhu.io/courses/core/projects/openmic/ · Local prototype evidence as of 25 October 2026</p>
+<footer><span>OpenMic · Text generation</span><span>Task 02 · 09 / 09</span></footer>
+</section>
+</main></div><!-- === DECK CHROME === -->
+<nav class="deck-controls" aria-label="Slide controls">
+<button id="previous" aria-label="Previous slide">←</button><span id="count" aria-live="polite"></span><button id="next" aria-label="Next slide">→</button>
+<button id="save" title="Download HTML with your edits">Save HTML</button><button id="print">Print / PDF</button>
+</nav>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button id="editToggle" class="edit-toggle" aria-pressed="false">Edit text</button>
+<div class="edit-help" role="status">Local draft · Save HTML to share · Esc to exit editing</div>
+<script>
+/* === NAVIGATION: preserve a fixed stage, keyboard / wheel / touch === */
+class SlidePresentation {
+ constructor() {
+  this.stage=document.getElementById('deckStage');
+  this.slides=[...document.querySelectorAll('.slide')];
+  this.index=0; this.editing=false;
+  this.fit=()=>{const s=Math.min(innerWidth/1920,innerHeight/1080);this.stage.style.transform='translate('+((innerWidth-1920*s)/2)+'px,'+((innerHeight-1080*s)/2)+'px) scale('+s+')';};
+  addEventListener('resize',this.fit); this.fit();
+  this.show(Number(location.hash.slice(1))-1 || 0);
+  addEventListener('hashchange',()=>this.show(Number(location.hash.slice(1))-1 || 0));
+  document.getElementById('previous').onclick=()=>this.show(this.index-1);
+  document.getElementById('next').onclick=()=>this.show(this.index+1);
+  addEventListener('keydown',e=>{
+   if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDeck();return;}
+   if(e.key==='Escape'){this.setEdit(false);return;}
+   if(e.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+   if(e.key.toLowerCase()==='e'){this.setEdit(!this.editing);return;}
+   if(this.editing || e.target.tagName==='BUTTON')return;
+   if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();this.show(this.index+1);}
+   if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();this.show(this.index-1);}
+   if(e.key==='Home'){e.preventDefault();this.show(0);}
+   if(e.key==='End'){e.preventDefault();this.show(this.slides.length-1);}
+  });
+  let lastWheel=0;
+  addEventListener('wheel',e=>{if(this.editing||Math.abs(e.deltaY)<15||Date.now()-lastWheel<400)return;lastWheel=Date.now();this.show(this.index+Math.sign(e.deltaY));},{passive:true});
+  let start=null;
+  this.stage.addEventListener('touchstart',e=>{start=e.touches.length===1?e.touches[0].clientX:null;},{passive:true});
+  this.stage.addEventListener('touchend',e=>{if(start!==null&&!this.editing){const d=start-e.changedTouches[0].clientX;if(Math.abs(d)>50)this.show(this.index+Math.sign(d));}start=null;},{passive:true});
+ }
+ show(n){this.index=Math.max(0,Math.min(n,this.slides.length-1));this.slides.forEach((s,i)=>{s.classList.toggle('active',i===this.index);s.setAttribute('aria-hidden',String(i!==this.index));});document.getElementById('count').textContent=(this.index+1)+' / '+this.slides.length;document.getElementById('previous').disabled=this.index===0;document.getElementById('next').disabled=this.index===this.slides.length-1;}
+ setEdit(value){this.editing=value;document.body.classList.toggle('editing',value);document.querySelectorAll('[data-edit]').forEach(el=>{if(value)el.setAttribute('contenteditable','plaintext-only');else el.removeAttribute('contenteditable');});const b=document.getElementById('editToggle');b.classList.toggle('active',value);b.setAttribute('aria-pressed',String(value));b.textContent=value?'Finish editing':'Edit text';}
+}
+/* === EDITING: local drafts are not online shared editing === */
+const draftKey='openmic-text-generation-'+location.pathname+'-'+document.documentElement.dataset.revision;
+const fields=[...document.querySelectorAll('[data-edit]')];
+try {const values=JSON.parse(localStorage.getItem(draftKey)||'null');if(Array.isArray(values)&&values.length===fields.length)fields.forEach((el,i)=>{if(typeof values[i]==='string')el.textContent=values[i];});} catch {}
+fields.forEach(el=>el.addEventListener('input',()=>{try{localStorage.setItem(draftKey,JSON.stringify(fields.map(x=>x.textContent)));}catch{}}));
+const deck=new SlidePresentation();
+const toggle=document.getElementById('editToggle'),hotzone=document.querySelector('.edit-hotzone');
+toggle.onclick=()=>deck.setEdit(!deck.editing);
+hotzone.onclick=()=>deck.setEdit(!deck.editing);
+let hideTimer;
+[hotzone,toggle].forEach(el=>{el.addEventListener('mouseenter',()=>{clearTimeout(hideTimer);toggle.classList.add('show');});el.addEventListener('mouseleave',()=>{hideTimer=setTimeout(()=>{if(!deck.editing)toggle.classList.remove('show');},400);});});
+/* === EXPORT: save edited text in the HTML, reset transient presentation state === */
+function saveDeck(){
+ const clone=document.documentElement.cloneNode(true);
+ clone.dataset.revision=String(Date.now());
+ clone.querySelector('body').classList.remove('editing');
+ clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+ clone.querySelectorAll('.slide').forEach((el,i)=>{el.classList.toggle('active',i===0);el.setAttribute('aria-hidden',String(i!==0));});
+ clone.querySelector('#deckStage').removeAttribute('style');
+ const button=clone.querySelector('#editToggle');button.className='edit-toggle';button.setAttribute('aria-pressed','false');button.textContent='Edit text';
+ const blob=new Blob(['<!DOCTYPE html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='text_generation.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById('save').onclick=saveDeck;
+document.getElementById('print').onclick=()=>window.print();
+</script></body></html>

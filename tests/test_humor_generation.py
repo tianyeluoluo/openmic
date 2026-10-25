@@ -13,10 +13,74 @@ from openmic.humor_data import (
     iter_cfunset, prepare_cfunset,
 )
 from openmic.humor_evaluation import aggregate_ratings, analyze_structure, script_contract_issues
-from openmic.models import AgentMessage, ProjectRequest
+from openmic.humor_generation import clean_writer_script, writer_prompt
+from openmic.models import AgentMessage, ProjectRequest, has_speculative_frame
 
 
 class HumorGenerationTests(unittest.TestCase):
+    def test_exact_opening_repeated_before_first_setup_is_removed(self):
+        opening = "冬天去东北，进饭馆点啤酒。服务员问：要常温还是冷藏？"
+        raw = opening + "\n\n[SETUP]" + opening + "[PUNCHLINE]常温在室外，更冷。"
+        self.assertEqual(clean_writer_script(raw), "[SETUP]" + opening + "[PUNCHLINE]常温在室外，更冷。")
+        distinct = "我一直不太会点菜，尤其怕老板给我推荐。\n[SETUP]" + opening + "[PUNCHLINE]常温在室外，更冷。"
+        self.assertEqual(clean_writer_script(distinct), distinct)
+    def test_topic_and_keyword_instructions_both_prepare_and_deduplicate(self) -> None:
+        text = "我网购了一把椅子，等了三天才收到货。拆开一看，客服给我寄来了‘请坐’两个字。"
+        rows = [{"instruction": instruction, "input": "", "output": text}
+                for instruction in ("生成一个关键词为“网购”的笑话", "生成一个主题为网购的笑话")]
+        examples = [derive_example(row) for row in rows]
+        self.assertTrue(all(examples))
+        self.assertEqual(examples[0].id, examples[1].id)
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / "source.json"
+            index = Path(folder) / "index.jsonl"
+            source.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+            stats = prepare_cfunset(source, index)
+            self.assertEqual(stats["counts"]["kept_rows"], 1)
+            self.assertEqual(stats["counts"]["duplicate_rows"], 1)
+            self.assertEqual(stats["preparation_protocol"], "cfunset-references-v2-topic-alias")
+
+    def test_short_request_is_allowed_and_writer_does_not_pad_to_limit(self) -> None:
+        request = ProjectRequest(topic="认错人拍背", duration_minutes=1)
+        self.assertIn("上限参考", writer_prompt(request))
+        self.assertEqual(request.duration_minutes, 1)
+
+    def test_agents_do_not_claim_unprovided_cfunset_examples(self) -> None:
+        prompts = _system_messages(ProjectRequest(topic="洗衣房扫错洗衣机"), examples=[])
+        self.assertIn("不得虚构‘参考1/参考2’", prompts["ComedyDirector"])
+        self.assertIn("不得虚构‘参考1/参考2’", prompts["JokeWriter"])
+
+    def test_leaked_performance_markup_is_removed_from_writer_script(self) -> None:
+        raw = (
+            "<SCRIPT>[EMOTION=nervous][SETUP] 我拍错人。[/EMOTION][PAUSE=0.8]"
+            "[PUNCHLINE][EMPHASIS]真室友就在旁边[/EMPHASIS]。</SCRIPT>"
+        )
+        self.assertEqual(clean_writer_script(raw),
+                         "[SETUP] 我拍错人。[PUNCHLINE]真室友就在旁边。")
+
+    def test_annotation_cleanup_preserves_words_and_removes_unmatched_tags(self) -> None:
+        raw = (
+            "[SETUP]我以为他离得近。[SETUP]回头才发现很远。"
+            "[PUNCHLINE]他开始跑，我更不敢松门。"
+            "[PUNCHLINE]他进门说谢谢。[SETUP]我终于能走了。"
+        )
+        cleaned = clean_writer_script(raw)
+        self.assertEqual(cleaned, (
+            "[SETUP]我以为他离得近。回头才发现很远。"
+            "[PUNCHLINE]他开始跑，我更不敢松门。"
+            "他进门说谢谢。我终于能走了。"
+        ))
+        self.assertFalse(script_contract_issues(cleaned, 1))
+
+    def test_explicit_time_travel_uses_modern_habits_and_consistent_world_rules(self) -> None:
+        self.assertTrue(has_speculative_frame("现代人穿越到古代"))
+        self.assertFalse(has_speculative_frame("宿舍里借充电器"))
+        fantasy = _system_messages(ProjectRequest(topic="现代人穿越到古代"))
+        ordinary = _system_messages(ProjectRequest(topic="宿舍里借充电器"))
+        self.assertIn("摸兜找手机", fantasy["JokeWriter"])
+        self.assertIn("幻想前提", fantasy["JokeWriter"])
+        self.assertIn("场地是否可能按这个顺序发生", ordinary["JokeWriter"])
+
     def test_prepare_filters_tasks_deduplicates_and_retrieves_training_only(self) -> None:
         rows = [
             {
@@ -56,7 +120,7 @@ class HumorGenerationTests(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertIn("网购", results[0].setup)
 
-    def test_prompt_ablation_only_adds_examples_to_writer(self) -> None:
+    def test_prompt_ablation_adds_examples_to_director_and_writer(self) -> None:
         request = ProjectRequest(topic="我的网购经历", duration_minutes=5)
         baseline = _system_messages(request)
         example = derive_example({
@@ -66,13 +130,29 @@ class HumorGenerationTests(unittest.TestCase):
         })
         self.assertIsNotNone(example)
         enriched = _system_messages(request, [example])
-        self.assertEqual(baseline["ComedyDirector"], enriched["ComedyDirector"])
-        self.assertIn("目标 1062-1438 个汉字", enriched["JokeWriter"])
+        self.assertIn("CFunSet", enriched["ComedyDirector"])
+        self.assertNotIn("CFunSet", baseline["ComedyDirector"])
+        self.assertIn("可以先抓一个短情境里真正好笑的预期落差", baseline["ComedyDirector"])
+        self.assertIn("也可以先想一段经历", baseline["ComedyDirector"])
+        self.assertIn("上限参考而非填字目标", enriched["JokeWriter"])
         self.assertIn("CFunSet", enriched["JokeWriter"])
         self.assertNotIn("CFunSet", baseline["JokeWriter"])
-        self.assertIn("可信的日常目标和流程", baseline["JokeWriter"])
-        self.assertIn("全文只追随一个主目标", baseline["JokeWriter"])
+        self.assertIn("如果从短笑点起步", baseline["JokeWriter"])
+        self.assertIn("如果从经历起步", baseline["JokeWriter"])
+        self.assertIn("偶然发生", baseline["JokeWriter"])
+        self.assertIn("内心预演", baseline["JokeWriter"])
         self.assertIn("保留 JokeWriter 的原文与 [SETUP]", enriched["PerformanceCoach"])
+
+    def test_user_context_is_shared_as_facts(self) -> None:
+        request = ProjectRequest(
+            topic="宿舍借充电器",
+            context="室友说桌上的充电器可以借用，原来是我昨天借给他的。",
+        )
+        prompts = _system_messages(request)
+        for agent in ("ComedyDirector", "AudienceAnalyzer", "JokeWriter", "QualityController"):
+            self.assertIn(request.context, prompts[agent])
+        with self.assertRaises(ValueError):
+            ProjectRequest(topic="宿舍", context="字" * 1001)
 
     def test_college_prompts_check_early_class_setting(self) -> None:
         prompts = _system_messages(ProjectRequest(topic="赶早八"))
@@ -81,6 +161,11 @@ class HumorGenerationTests(unittest.TestCase):
             self.assertIn("走读或跨校区", prompts[agent])
         non_college = _system_messages(ProjectRequest(topic="通勤", audience="上班族"))
         self.assertNotIn("校园情境核对", non_college["ComedyDirector"])
+        library = _system_messages(ProjectRequest(topic="图书馆认错人"))
+        self.assertNotIn("赶早八通常", library["JokeWriter"])
+        doorway = _system_messages(ProjectRequest(topic="给教学楼后面的同学扶门"))
+        self.assertNotIn("地铁", doorway["JokeWriter"])
+        self.assertIn("直接进楼", doorway["JokeWriter"])
         shopping = _system_messages(ProjectRequest(topic="我的网购经历"))
         for agent in ("ComedyDirector", "JokeWriter", "QualityController"):
             self.assertIn("‘包邮’指卖家寄送并承担运费", shopping[agent])
@@ -124,6 +209,14 @@ class HumorGenerationTests(unittest.TestCase):
         self.assertTrue(any("汉字上限" in issue for issue in script_contract_issues(
             valid + "补充" * 400, 3
         )))
+        short_story = (
+            "[SETUP] 我先想象自己替前面的人捡起校园卡，我们会因此成为朋友。"
+            "[PUNCHLINE] 结果卡还没掉，我先被后面的人挤着往前走了。"
+        )
+        self.assertEqual(script_contract_issues(short_story, 3), [])
+        self.assertTrue(any("空回调" in issue for issue in script_contract_issues(
+            short_story + "[CALLBACK]", 3
+        )))
 
     def test_cfunset_curator_accepts_valid_indices_and_empty_selection(self) -> None:
         examples = [HumorExample(str(i), "joke_continuation", "铺垫" * 12,
@@ -158,6 +251,24 @@ class HumorGenerationTests(unittest.TestCase):
             retriever = CFunRetriever(index)
             self.assertEqual([item.id for item in retriever.examples], ["safe"])
 
+    def test_retriever_keeps_fantasy_and_analogy_for_mechanism_review(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            index = Path(folder) / "index.jsonl"
+            items = [
+                {"id": "fantasy", "task": "keyword_generation",
+                 "setup": "昨晚做梦，在古装江湖里把充电器借给朋友，走了一大段路。",
+                 "punchline": "醒来才发现充电器还在桌子上，梦里的朋友没有还。", "split": "train"},
+                {"id": "analogy", "task": "joke_continuation",
+                 "setup": "充电器有点像是薛定谔的猫，插上以后我一直不敢动手机。",
+                 "punchline": "想看它充上没有，又怕碰一下就停止充电。", "split": "train"},
+            ]
+            index.write_text("\n".join(json.dumps(item, ensure_ascii=False) for item in items) + "\n",
+                             encoding="utf-8")
+            self.assertEqual(
+                {item.id for item in CFunRetriever(index).retrieve("充电器", k=3)},
+                {"fantasy", "analogy"},
+            )
+
     def test_human_summary_reports_mean_and_variance(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             ratings = Path(folder) / "ratings.csv"
@@ -176,7 +287,9 @@ class HumorGenerationTests(unittest.TestCase):
         fail_once = {"active": False}
 
         class FakeWorkflow:
-            def __init__(self, config, *, content_mode, cfunset_index):
+            def __init__(self, config, *, content_mode, cfunset_index, adaptation_probability):
+                if adaptation_probability != 0:
+                    raise AssertionError("原创检索对照不能混入近例改编")
                 self.condition = content_mode
 
             def run(self, request):

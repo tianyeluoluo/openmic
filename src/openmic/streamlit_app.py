@@ -6,6 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 from openmic.autogen_v02 import AutoGenConfig, AutoGenV02Workflow
+from openmic.humor_adaptation import DEFAULT_ADAPTATION_PROBABILITY
 from openmic.models import AgentMessage, ProjectRequest, WorkflowResult
 from openmic.tts import (
     SYSTEM_VOICES,
@@ -48,12 +49,18 @@ def main() -> None:
         content_mode = st.selectbox(
             "文本生成策略",
             options=["baseline", "cfunset"],
+            index=1,
             format_func=lambda value: "Prompt baseline" if value == "baseline" else "CFunSet 检索增强",
             disabled=backend != "autogen",
         )
         index_path = st.text_input(
             "CFunSet 索引路径",
             value=os.getenv("OPENMIC_CFUNSET_INDEX", "artifacts/cfunset/index.jsonl"),
+            disabled=backend != "autogen" or content_mode != "cfunset",
+        )
+        adaptation_probability = st.slider(
+            "原例改编概率", 0.0, 1.0, DEFAULT_ADAPTATION_PROBABILITY, 0.05,
+            help="0自主创作，1每次尝试保留原例笑点来改编；没有兼容原例时会回退。",
             disabled=backend != "autogen" or content_mode != "cfunset",
         )
         st.info("密钥仅从本地 .env 读取，不会显示在页面或写入 Git。")
@@ -64,9 +71,14 @@ def main() -> None:
         with col1:
             style_label = st.selectbox("表演风格", list(STYLE_OPTIONS))
         with col2:
-            duration = st.selectbox("目标时长（分钟）", [3, 4, 5])
+            duration = st.selectbox("目标时长上限（分钟）", [1, 2, 3, 4, 5], index=2)
         with col3:
             audience = st.text_input("目标受众", value="大学生")
+        context = st.text_area(
+            "具体语境（可选）",
+            placeholder="例如：昨晚宿舍手机快没电，我在群里借充电器，发现室友说的那个其实是我昨天借给他的。",
+            height=90,
+        )
         generate = st.form_submit_button("生成脱口秀脚本", type="primary")
 
     if generate:
@@ -76,6 +88,7 @@ def main() -> None:
             style=STYLE_OPTIONS[style_label],
             duration_minutes=duration,
             audience=audience,
+            context=context,
         )
         try:
             st.subheader("实时协作过程")
@@ -108,6 +121,7 @@ def main() -> None:
                         AutoGenConfig.from_env(),
                         content_mode=content_mode,
                         cfunset_index=Path(index_path),
+                        adaptation_probability=adaptation_probability,
                     ).run(
                         request,
                         on_message=show_message,
@@ -131,6 +145,12 @@ def main() -> None:
         revision_col.metric("返工次数", result.revision_count)
         if result.validation_issues:
             st.warning("本地脚本检查未通过：" + "；".join(result.validation_issues))
+        if result.adaptation_source_id:
+            st.info("本稿为CFunSet原例改编，原例ID：" + result.adaptation_source_id)
+            if result.adaptation_reference:
+                with st.expander("查看CFunSet原例"):
+                    st.write(result.adaptation_reference["setup"])
+                    st.write(result.adaptation_reference["punchline"])
 
         st.subheader("Agent 协作轨迹")
         for item in result.messages:

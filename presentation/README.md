@@ -48,3 +48,25 @@ Architecture references: `src/openmic/autogen_v02.py`,
 `src/openmic/streamlit_app.py`, and `src/openmic/tts.py`.
 The TTS action is user-triggered; the quality gate stops at approval or the
 revision limit, and the UI displays the outcome in either case.
+
+## Task 2 text-generation presentation
+
+Open [text_generation.html](text_generation.html) for the standalone text-generation section.
+It follows the same white/blue/gray theme, fixed 1920 × 1080 canvas, navigation,
+local editing, **Save HTML**, and print controls. It has no external scripts,
+fonts or build dependencies. Main explanations are in English; Chinese joke
+excerpts retain their original wording.
+
+- **Length:** 9 slides, about 7–8 minutes for one speaker.
+- **Speaking plan:** [Chinese notes with per-slide timing](text_generation_notes.md), target 7:40.
+- **Content:** CFunSet preparation, reference selection, two writing routes,
+  topic expansion, a callback example, evaluation, local training experiments
+  and current limitations.
+- **Evidence:** [release summary](../docs/TASK2_RELEASE.md) and
+  [compact development results](../docs/task2_v39_results.json).
+
+This separate file leaves the shared `midterm.html` and other owners' placeholders
+unchanged. An integrator can reuse the text-generation slides when assembling
+the team presentation. The optional training experiments are distinguished from
+DeepSeek generation, and the four-topic model review is distinguished from human
+audience evaluation.
