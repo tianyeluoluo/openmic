@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" data-revision="task2-3min-20261027"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMic · Text Generation · Three Minutes</title><style>
+/* === BASE: fixed 1920 × 1080 stage === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* === THEME: white background, default system fonts, minimal decoration === */
+:root { --stage-bg:#f1f3f5; --slide-bg:#fff; --ink:#202b38; --muted:#66717e; --blue:#2869b0; --line:#d7e0e8; }
+* { box-sizing:border-box; }
+body { color:var(--ink); font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif; }
+h1,h2,h3,p { margin:0; }
+.slide { padding:84px 110px; }
+h1 { font-size:112px; font-weight:650; letter-spacing:-3px; }
+h2 { font-size:58px; line-height:1.3; font-weight:600; }
+.eyebrow { font-size:26px; color:var(--muted); margin-bottom:25px; }
+.subtitle { font-size:38px; margin-top:24px; color:var(--muted); }
+footer { position:absolute; bottom:47px; left:110px; right:110px; display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:23px; }
+svg { display:block; width:100%; overflow:hidden; font-family:inherit; }
+.diagram { position:absolute; left:110px; top:295px; width:1700px; height:625px; }
+.box { fill:#fff; stroke:#c8d5e2; stroke-width:2; }
+.tint { fill:#f3f7fc; stroke:#b9cde2; stroke-width:2; }
+.link { stroke:#567190; stroke-width:3; fill:none; }
+svg text { fill:var(--ink); text-anchor:middle; dominant-baseline:middle; }
+svg .major { font-size:30px; font-weight:600; }
+svg .small { font-size:25px; fill:var(--muted); }
+svg .english { font-size:21px; fill:var(--muted); }
+svg .accent { fill:var(--blue); }
+.title-copy { margin-top:100px; }
+.title-flow { margin-top:90px; width:1700px; height:230px; }
+.names { font-size:28px; color:var(--muted); margin-top:75px; }
+/* === TODO: leave unmerged team sections empty === */
+.placeholder { position:absolute; left:110px; right:110px; top:310px; height:570px; border:2px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:25px; }
+.todo { font-size:80px; color:#aab5c1; font-weight:500; }
+.placeholder p { font-size:32px; color:var(--muted); }
+.placeholder .hint { font-size:26px; color:#8793a0; }
+/* === CONTROLS: outside the slide canvas === */
+.deck-controls { display:flex; gap:8px; align-items:center; background:#ffffffed; padding:7px 12px; border:1px solid #d7e0e8; border-radius:6px; }
+button { font:inherit; cursor:pointer; background:white; color:#263a51; border:1px solid #d7e0e8; border-radius:4px; padding:6px 12px; }
+button:hover { background:#edf3fa; }
+button:disabled { opacity:.4; cursor:default; }
+button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#count { font-size:14px; min-width:48px; text-align:center; }
+.edit-hotzone { position:fixed; top:0; left:0; width:85px; height:70px; z-index:1001; }
+.edit-toggle { position:fixed; top:14px; left:14px; z-index:1002; opacity:0; pointer-events:none; }
+.edit-toggle.show,.edit-toggle.active { opacity:1; pointer-events:auto; }
+body.editing [data-edit] { outline:2px dashed #a6bfdc; outline-offset:6px; }
+.edit-help { position:fixed; top:15px; left:130px; color:#526577; background:#fff; padding:8px; font-size:14px; z-index:1002; display:none; }
+body.editing .edit-help { display:block; }
+@page { size:1920px 1080px; margin:0; }
+@media print {
+ .edit-hotzone,.edit-toggle,.edit-help { display:none!important; }
+ [data-edit] { outline:none!important; }
+ * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+
+.content { margin-top:55px; }
+.lead { font-size:40px; line-height:1.5; }
+.body-copy { font-size:33px; line-height:1.55; }
+.small-copy { font-size:26px; line-height:1.5; color:var(--muted); }
+.source { position:absolute; left:110px; right:110px; bottom:135px; font-size:23px; line-height:1.45; color:var(--muted); }
+.story-grid { list-style:none; display:grid; grid-template-columns:repeat(3,1fr); gap:54px; margin:47px 0 0; padding:0; }
+.story-grid li { position:relative; min-height:185px; border:2px solid var(--line); padding:30px; }
+.story-grid li+li::before { content:'→'; position:absolute; left:-44px; top:68px; color:#567190; font-size:38px; }
+.story-grid h3 { font-size:33px; font-weight:600; margin-bottom:18px; }
+.story-grid p { font-size:28px; color:var(--muted); line-height:1.5; }
+.story-grid .focus { background:#f3f7fc; border-color:#b9cde2; }
+.takeaway { border-left:5px solid var(--blue); padding:21px 0 21px 28px; font-size:34px; line-height:1.5; margin-top:40px; }
+.prompt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:54px; margin-top:40px; }
+.prompt-part { border-top:3px solid var(--line); padding-top:24px; }
+.prompt-part h3 { font-size:33px; font-weight:600; margin-bottom:17px; }
+.prompt-part p { font-size:29px; line-height:1.5; }
+.prompt-example { margin-top:37px; padding:24px 30px; background:#f3f7fc; border-left:4px solid var(--blue); }
+.prompt-example .label { font-size:25px; color:var(--blue); margin-bottom:12px; }
+.prompt-example .text { font-size:31px; line-height:1.5; }
+.input-strip { padding-bottom:20px; border-bottom:1px solid var(--line); font-size:33px; line-height:1.5; }
+.retrieval { margin-top:23px; font-size:31px; color:var(--blue); }
+.agents { list-style:none; display:grid; grid-template-columns:repeat(5,1fr); gap:45px; padding:0; margin:35px 0 0; }
+.agents li { position:relative; border:2px solid var(--line); padding:24px 13px; text-align:center; min-height:140px; }
+.agents li+li::before { content:'→'; position:absolute; left:-37px; top:45px; color:#567190; font-size:36px; }
+.agents h3 { font-size:30px; font-weight:600; margin-bottom:18px; }
+.agents p { font-size:22px; color:var(--muted); }
+.agents .quality { background:#f3f7fc; border-color:#b9cde2; }
+.audit-line { margin:33px 0 0; text-align:center; font-size:32px; color:var(--blue); }
+.output-line { margin-top:24px; padding:20px; text-align:center; border:2px solid var(--line); font-size:32px; }
+.feedback-line { margin-top:25px; font-size:29px; color:var(--muted); line-height:1.5; }
+table { width:100%; border-collapse:collapse; margin-top:33px; font-size:31px; line-height:1.4; }
+th { text-align:left; font-size:26px; color:var(--muted); font-weight:500; border-bottom:2px solid var(--line); padding:15px 22px; }
+td { padding:12px 22px; border-bottom:1px solid var(--line); vertical-align:top; }
+th:first-child,td:first-child { padding-left:0; width:370px; }
+.evaluation .lead { font-size:35px; }
+.evaluation .takeaway { font-size:31px; margin-top:27px; padding-top:16px; padding-bottom:16px; }
+.evaluation .small-copy { margin-top:19px; }
+</style></head>
+<body><div class="deck-viewport"><main class="deck-stage" id="deckStage"><!-- Speaker notes: 40 seconds. Present the whole-story view as a working approach for this project. Keep motivation, causality and rhythm connected; believable coincidences and inner thoughts are allowed. -->
+<section class="slide active" data-owner="text-generation" aria-label="Humor in the whole story">
+<header><p class="eyebrow" data-edit>02 / Content generation</p><h2 data-edit>Humor in the whole story</h2></header>
+
+<div class="content"><p class="lead" data-edit>For this project, I treat a joke as a coherent story.</p>
+<ol class="story-grid">
+<li><h3 data-edit>Everyday situation</h3><p data-edit>What the character wants<br>and expects to happen</p></li>
+<li class="focus"><h3 data-edit>Character response</h3><p data-edit>A choice, misunderstanding<br>or believable inner thought</p></li>
+<li><h3 data-edit>Changed expectation</h3><p data-edit>A surprising consequence<br>that the audience can follow</p></li>
+</ol>
+<p class="body-copy" style="margin-top:40px" data-edit>Optimizing each small beat in isolation can make the whole experience feel artificial.</p>
+<div class="takeaway" data-edit>Read motivation, cause, consequence and rhythm together.</div></div><p class="source">Working approach developed through iterative script review</p>
+<footer><span>OpenMic · Text generation</span><span>01 / 04</span></footer></section>
+<!-- Speaker notes: 45 seconds. Explain retrieval, selected examples, role prompts, flexible outlines and revision feedback. Adaptation preserves the source mechanism; original writing transfers it. The visible prompt is a summary. -->
+<section class="slide" data-owner="text-generation" aria-label="CFunSet-guided prompt engineering">
+<header><p class="eyebrow" data-edit>02 / Content generation</p><h2 data-edit>CFunSet-guided prompt engineering</h2></header>
+
+<div class="content"><p class="body-copy" data-edit>Retrieve useful training examples. Extract what the listener expects and what changes that understanding.</p>
+<div class="prompt-grid">
+<div class="prompt-part"><h3 data-edit>Role prompts</h3><p data-edit>Give planning, writing and review different responsibilities.</p></div>
+<div class="prompt-part"><h3 data-edit>Structured planning</h3><p data-edit>Use a story spine or a funny moment. Keep the writer free to improve weak ideas.</p></div>
+<div class="prompt-part"><h3 data-edit>Critique and revision</h3><p data-edit>Identify a weak line and repair the action, reply or ending that causes it.</p></div>
+</div>
+<div class="prompt-example"><p class="label" data-edit>Summary of the writing guidance</p><p class="text" data-edit>Keep a coherent experience and believable motives. Let actions or replies shift expectations. Keep necessary setup and trim repeated explanations.</p></div>
+<p class="small-copy" style="margin-top:23px" data-edit>Adaptation preserves the source mechanism. Original writing transfers it into a new situation.</p></div><p class="source">Implementation: humor_data.py, humor_generation.py and humor_craft.py · Retrieval and prompts, without generator fine-tuning</p>
+<footer><span>OpenMic · Text generation</span><span>02 / 04</span></footer></section>
+<!-- Speaker notes: 45 seconds. Follow input, retrieval, five roles, separate review, bounded revision and saved output. Flash drafts. Pro separately audits and rewrites. The quality-loop audit uses 1-5; internal five-role QC uses 0-10. -->
+<section class="slide" data-owner="text-generation" aria-label="Generation pipeline">
+<header><p class="eyebrow" data-edit>02 / Content generation</p><h2 data-edit>Generation pipeline</h2></header>
+
+<div class="content"><p class="input-strip" data-edit>Input: topic, audience and real context</p>
+<p class="retrieval" data-edit>CFunSet training retrieval and reference selection</p>
+<ol class="agents">
+<li><h3 data-edit>Direction</h3><p data-edit>ComedyDirector</p></li>
+<li><h3 data-edit>Audience</h3><p data-edit>AudienceAnalyzer</p></li>
+<li><h3 data-edit>Writing</h3><p data-edit>JokeWriter</p></li>
+<li><h3 data-edit>Delivery</h3><p data-edit>PerformanceCoach</p></li>
+<li class="quality"><h3 data-edit>Quality</h3><p data-edit>QualityController</p></li>
+</ol>
+<p class="audit-line" data-edit>↓ Pro rubric review and fact/continuity checks</p>
+<p class="output-line" data-edit>Output: script, scores, source IDs and quality status</p>
+<p class="feedback-line" data-edit>Pro rewrites the full draft using quoted feedback within a revision budget. We retain the best candidate and record failed attempts.</p></div><p class="source">Draft: deepseek-flash · Audit and rewriting: deepseek-v4-pro · Quality-loop workflow</p>
+<footer><span>OpenMic · Text generation</span><span>03 / 04</span></footer></section>
+<!-- Speaker notes: 50 seconds. Explain four core rubric dimensions, whole-script review, score anchors and quoted repairs. The implementation also reports realism and checks facts separately. Model scores still require human calibration. -->
+<section class="slide" data-owner="text-generation" aria-label="Four core evaluation dimensions">
+<header><p class="eyebrow" data-edit>02 / Content generation</p><h2 data-edit>Four core evaluation dimensions</h2></header>
+
+<div class="content evaluation"><p class="lead" data-edit>Pro applies a prompted 1–5 rubric to the full script.</p>
+<table><thead><tr><th>Dimension</th><th>Scoring criteria</th></tr></thead><tbody>
+<tr><td data-edit>Humor</td><td data-edit>A specific, surprising yet understandable turn or response</td></tr>
+<tr><td data-edit>Cultural fit</td><td data-edit>Chinese context, audience knowledge and natural social behavior</td></tr>
+<tr><td data-edit>Spoken naturalness</td><td data-edit>Idiomatic phrasing that sounds natural when spoken aloud</td></tr>
+<tr><td data-edit>Structure</td><td data-edit>Whole-story coherence, reveal timing and useful callbacks</td></tr>
+</tbody></table>
+<div class="takeaway" data-edit>Blocking issues require an original quote, a reason and a repair.</div>
+<p class="small-copy" data-edit>Humor: 3 = understandable but weak. 4 = a specific comic turn. Realism has a separate check. Human calibration remains necessary.</p></div><p class="source">Prompted scores, distinct from CFunSet binary labels · Implementation: humor_quality_loop.py</p>
+<footer><span>OpenMic · Text generation</span><span>04 / 04</span></footer></section></main></div>
+<!-- === DECK CHROME === -->
+<nav class="deck-controls" aria-label="Slide controls">
+<button id="previous" aria-label="Previous slide">←</button><span id="count" aria-live="polite"></span><button id="next" aria-label="Next slide">→</button>
+<button id="save" title="Download HTML with your edits">Save HTML</button><button id="print">Print / PDF</button>
+</nav>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button id="editToggle" class="edit-toggle" aria-pressed="false">Edit text</button>
+<div class="edit-help" role="status">Local draft · Save HTML to share · Esc to exit editing</div>
+<script>
+/* === NAVIGATION: preserve a fixed stage, keyboard / wheel / touch === */
+class SlidePresentation {
+ constructor() {
+  this.stage=document.getElementById('deckStage');
+  this.slides=[...document.querySelectorAll('.slide')];
+  this.index=0; this.editing=false;
+  this.fit=()=>{const s=Math.min(innerWidth/1920,innerHeight/1080);this.stage.style.transform='translate('+((innerWidth-1920*s)/2)+'px,'+((innerHeight-1080*s)/2)+'px) scale('+s+')';};
+  addEventListener('resize',this.fit); this.fit();
+  this.show(Number(location.hash.slice(1))-1 || 0);
+  addEventListener('hashchange',()=>this.show(Number(location.hash.slice(1))-1 || 0));
+  document.getElementById('previous').onclick=()=>this.show(this.index-1);
+  document.getElementById('next').onclick=()=>this.show(this.index+1);
+  addEventListener('keydown',e=>{
+   if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDeck();return;}
+   if(e.key==='Escape'){this.setEdit(false);return;}
+   if(e.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+   if(e.key.toLowerCase()==='e'){this.setEdit(!this.editing);return;}
+   if(this.editing || e.target.tagName==='BUTTON')return;
+   if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();this.show(this.index+1);}
+   if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();this.show(this.index-1);}
+   if(e.key==='Home'){e.preventDefault();this.show(0);}
+   if(e.key==='End'){e.preventDefault();this.show(this.slides.length-1);}
+  });
+  let lastWheel=0;
+  addEventListener('wheel',e=>{if(this.editing||Math.abs(e.deltaY)<15||Date.now()-lastWheel<400)return;lastWheel=Date.now();this.show(this.index+Math.sign(e.deltaY));},{passive:true});
+  let start=null;
+  this.stage.addEventListener('touchstart',e=>{start=e.touches.length===1?e.touches[0].clientX:null;},{passive:true});
+  this.stage.addEventListener('touchend',e=>{if(start!==null&&!this.editing){const d=start-e.changedTouches[0].clientX;if(Math.abs(d)>50)this.show(this.index+Math.sign(d));}start=null;},{passive:true});
+ }
+ show(n){this.index=Math.max(0,Math.min(n,this.slides.length-1));this.slides.forEach((s,i)=>{s.classList.toggle('active',i===this.index);s.setAttribute('aria-hidden',String(i!==this.index));});document.getElementById('count').textContent=(this.index+1)+' / '+this.slides.length;document.getElementById('previous').disabled=this.index===0;document.getElementById('next').disabled=this.index===this.slides.length-1;}
+ setEdit(value){this.editing=value;document.body.classList.toggle('editing',value);document.querySelectorAll('[data-edit]').forEach(el=>{if(value)el.setAttribute('contenteditable','plaintext-only');else el.removeAttribute('contenteditable');});const b=document.getElementById('editToggle');b.classList.toggle('active',value);b.setAttribute('aria-pressed',String(value));b.textContent=value?'Finish editing':'Edit text';}
+}
+/* === EDITING: local drafts are not online shared editing === */
+const draftKey='openmic-text-generation-3min-'+location.pathname+'-'+document.documentElement.dataset.revision;
+const fields=[...document.querySelectorAll('[data-edit]')];
+try {const values=JSON.parse(localStorage.getItem(draftKey)||'null');if(Array.isArray(values)&&values.length===fields.length)fields.forEach((el,i)=>{if(typeof values[i]==='string')el.textContent=values[i];});} catch {}
+fields.forEach(el=>el.addEventListener('input',()=>{try{localStorage.setItem(draftKey,JSON.stringify(fields.map(x=>x.textContent)));}catch{}}));
+const deck=new SlidePresentation();
+const toggle=document.getElementById('editToggle'),hotzone=document.querySelector('.edit-hotzone');
+toggle.onclick=()=>deck.setEdit(!deck.editing);
+hotzone.onclick=()=>deck.setEdit(!deck.editing);
+let hideTimer;
+[hotzone,toggle].forEach(el=>{el.addEventListener('mouseenter',()=>{clearTimeout(hideTimer);toggle.classList.add('show');});el.addEventListener('mouseleave',()=>{hideTimer=setTimeout(()=>{if(!deck.editing)toggle.classList.remove('show');},400);});});
+/* === EXPORT: save edited text in the HTML, reset transient presentation state === */
+function saveDeck(){
+ const clone=document.documentElement.cloneNode(true);
+ clone.dataset.revision=String(Date.now());
+ clone.querySelector('body').classList.remove('editing');
+ clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+ clone.querySelectorAll('.slide').forEach((el,i)=>{el.classList.toggle('active',i===0);el.setAttribute('aria-hidden',String(i!==0));});
+ clone.querySelector('#deckStage').removeAttribute('style');
+ const button=clone.querySelector('#editToggle');button.className='edit-toggle';button.setAttribute('aria-pressed','false');button.textContent='Edit text';
+ const blob=new Blob(['<!DOCTYPE html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='text_generation_3min.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById('save').onclick=saveDeck;
+document.getElementById('print').onclick=()=>window.print();
+</script></body></html>

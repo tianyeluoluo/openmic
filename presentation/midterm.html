@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-revision="draft-2">
+<html lang="en" data-revision="midterm-task2-20261027">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -188,6 +188,47 @@ body.editing .edit-help { display:block; }
  [data-edit] { outline:none!important; }
  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
+
+/* === TASK 2: scoped content-generation layouts === */
+
+.slide[data-section="text-generation"] .content { margin-top:55px; }
+.slide[data-section="text-generation"] .lead { font-size:40px; line-height:1.5; }
+.slide[data-section="text-generation"] .body-copy { font-size:33px; line-height:1.55; }
+.slide[data-section="text-generation"] .small-copy { font-size:26px; line-height:1.5; color:var(--muted); }
+.slide[data-section="text-generation"] .source { position:absolute; left:110px; right:110px; bottom:135px; font-size:23px; line-height:1.45; color:var(--muted); }
+.slide[data-section="text-generation"] .story-grid { list-style:none; display:grid; grid-template-columns:repeat(3,1fr); gap:54px; margin:47px 0 0; padding:0; }
+.slide[data-section="text-generation"] .story-grid li { position:relative; min-height:185px; border:2px solid var(--line); padding:30px; }
+.slide[data-section="text-generation"] .story-grid li+li::before { content:'→'; position:absolute; left:-44px; top:68px; color:#567190; font-size:38px; }
+.slide[data-section="text-generation"] .story-grid h3 { font-size:33px; font-weight:600; margin-bottom:18px; }
+.slide[data-section="text-generation"] .story-grid p { font-size:28px; color:var(--muted); line-height:1.5; }
+.slide[data-section="text-generation"] .story-grid .focus { background:#f3f7fc; border-color:#b9cde2; }
+.slide[data-section="text-generation"] .takeaway { border-left:5px solid var(--blue); padding:21px 0 21px 28px; font-size:34px; line-height:1.5; margin-top:40px; }
+.slide[data-section="text-generation"] .prompt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:54px; margin-top:40px; }
+.slide[data-section="text-generation"] .prompt-part { border-top:3px solid var(--line); padding-top:24px; }
+.slide[data-section="text-generation"] .prompt-part h3 { font-size:33px; font-weight:600; margin-bottom:17px; }
+.slide[data-section="text-generation"] .prompt-part p { font-size:29px; line-height:1.5; }
+.slide[data-section="text-generation"] .prompt-example { margin-top:37px; padding:24px 30px; background:#f3f7fc; border-left:4px solid var(--blue); }
+.slide[data-section="text-generation"] .prompt-example .label { font-size:25px; color:var(--blue); margin-bottom:12px; }
+.slide[data-section="text-generation"] .prompt-example .text { font-size:31px; line-height:1.5; }
+.slide[data-section="text-generation"] .input-strip { padding-bottom:20px; border-bottom:1px solid var(--line); font-size:33px; line-height:1.5; }
+.slide[data-section="text-generation"] .retrieval { margin-top:23px; font-size:31px; color:var(--blue); }
+.slide[data-section="text-generation"] .agents { list-style:none; display:grid; grid-template-columns:repeat(5,1fr); gap:45px; padding:0; margin:35px 0 0; }
+.slide[data-section="text-generation"] .agents li { position:relative; border:2px solid var(--line); padding:24px 13px; text-align:center; min-height:140px; }
+.slide[data-section="text-generation"] .agents li+li::before { content:'→'; position:absolute; left:-37px; top:45px; color:#567190; font-size:36px; }
+.slide[data-section="text-generation"] .agents h3 { font-size:30px; font-weight:600; margin-bottom:18px; }
+.slide[data-section="text-generation"] .agents p { font-size:22px; color:var(--muted); }
+.slide[data-section="text-generation"] .agents .quality { background:#f3f7fc; border-color:#b9cde2; }
+.slide[data-section="text-generation"] .audit-line { margin:33px 0 0; text-align:center; font-size:32px; color:var(--blue); }
+.slide[data-section="text-generation"] .output-line { margin-top:24px; padding:20px; text-align:center; border:2px solid var(--line); font-size:32px; }
+.slide[data-section="text-generation"] .feedback-line { margin-top:25px; font-size:29px; color:var(--muted); line-height:1.5; }
+.slide[data-section="text-generation"] table { width:100%; border-collapse:collapse; margin-top:33px; font-size:31px; line-height:1.4; }
+.slide[data-section="text-generation"] th { text-align:left; font-size:26px; color:var(--muted); font-weight:500; border-bottom:2px solid var(--line); padding:15px 22px; }
+.slide[data-section="text-generation"] td { padding:12px 22px; border-bottom:1px solid var(--line); vertical-align:top; }
+.slide[data-section="text-generation"] th:first-child,.slide[data-section="text-generation"] td:first-child { padding-left:0; width:370px; }
+.slide[data-section="text-generation"] .evaluation .lead { font-size:35px; }
+.slide[data-section="text-generation"] .evaluation .takeaway { font-size:31px; margin-top:27px; padding-top:16px; padding-bottom:16px; }
+.slide[data-section="text-generation"] .evaluation .small-copy { margin-top:19px; }
+
 </style>
 </head>
 <body>
@@ -206,7 +247,7 @@ body.editing .edit-help { display:block; }
 <rect x="1355" y="25" width="340" height="175" rx="5" class="box"/><text x="1525" y="100" class="major">Speech performance</text><text x="1525" y="150" class="small">CosyVoice2</text>
 </svg>
 <p class="names" data-edit>Team 1234</p>
-<footer><span>OpenMic · Midterm Review</span><span>Team 1234 · 01 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>Team 1234 · 01 / 10</span></footer>
 </section>
 <!-- === lyy: project purpose and challenge analysis ===
 Speaker notes:
@@ -267,7 +308,7 @@ directions. No listener study or performance improvement is claimed here.
 <text x="1434" y="475" class="small">Timing · Emphasis · Emotion</text>
 <text x="850" y="595" class="small">Proposed validation: audience ratings + matched text/audio comparisons</text>
 </svg>
-<footer><span>OpenMic · Midterm Review</span><span>lyy · 02 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>lyy · 02 / 10</span></footer>
 </section>
 <!-- === lyy: architecture / TTS is manually triggered; stop after at most 2 rewrites === -->
 <section class="slide" data-owner="lyy" aria-label="System architecture">
@@ -295,31 +336,83 @@ directions. No listener study or performance improvement is claimed here.
 <path d="M1150 533 H1310" class="link" marker-end="url(#arrow-3)"/>
 <rect x="1330" y="475" width="370" height="115" rx="5" class="box"/><text x="1515" y="517" class="major">16 kHz WAV</text><text x="1515" y="560" class="small">Play / Download</text>
 </svg>
-<footer><span>OpenMic · Midterm Review</span><span>lyy · 03 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>lyy · 03 / 10</span></footer>
 </section>
-<!-- === znjq: TODO / Content generation === -->
-<section class="slide" data-owner="znjq" aria-label="Content generation">
-<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>Content generation</h2></header>
-<div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>znjq</p><p class="hint" data-edit>Topic input · Audience analysis · Script & delivery cues</p></div>
-<footer><span>OpenMic · Midterm Review</span><span>znjq · 04 / 07</span></footer>
-</section>
+<!-- === znjq: Content generation / four slides / three-minute English section === -->
+<!-- Speaker notes: 40 seconds. Present the whole-story view as a working approach for this project. Keep motivation, causality and rhythm connected; believable coincidences and inner thoughts are allowed. -->
+<section class="slide" data-owner="znjq" data-section="text-generation" aria-label="Humor in the whole story">
+<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>Humor in the whole story</h2></header>
+
+<div class="content"><p class="lead" data-edit>For this project, I treat a joke as a coherent story.</p>
+<ol class="story-grid">
+<li><h3 data-edit>Everyday situation</h3><p data-edit>What the character wants<br>and expects to happen</p></li>
+<li class="focus"><h3 data-edit>Character response</h3><p data-edit>A choice, misunderstanding<br>or believable inner thought</p></li>
+<li><h3 data-edit>Changed expectation</h3><p data-edit>A surprising consequence<br>that the audience can follow</p></li>
+</ol>
+<p class="body-copy" style="margin-top:40px" data-edit>Optimizing each small beat in isolation can make the whole experience feel artificial.</p>
+<div class="takeaway" data-edit>Read motivation, cause, consequence and rhythm together.</div></div><p class="source">Working approach developed through iterative script review</p>
+<footer><span>OpenMic · Midterm Review</span><span>znjq · 04 / 10</span></footer></section>
+<!-- Speaker notes: 45 seconds. Explain retrieval, selected examples, role prompts, flexible outlines and revision feedback. Adaptation preserves the source mechanism; original writing transfers it. The visible prompt is a summary. -->
+<section class="slide" data-owner="znjq" data-section="text-generation" aria-label="CFunSet-guided prompt engineering">
+<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>CFunSet-guided prompt engineering</h2></header>
+
+<div class="content"><p class="body-copy" data-edit>Retrieve useful training examples. Extract what the listener expects and what changes that understanding.</p>
+<div class="prompt-grid">
+<div class="prompt-part"><h3 data-edit>Role prompts</h3><p data-edit>Give planning, writing and review different responsibilities.</p></div>
+<div class="prompt-part"><h3 data-edit>Structured planning</h3><p data-edit>Use a story spine or a funny moment. Keep the writer free to improve weak ideas.</p></div>
+<div class="prompt-part"><h3 data-edit>Critique and revision</h3><p data-edit>Identify a weak line and repair the action, reply or ending that causes it.</p></div>
+</div>
+<div class="prompt-example"><p class="label" data-edit>Summary of the writing guidance</p><p class="text" data-edit>Keep a coherent experience and believable motives. Let actions or replies shift expectations. Keep necessary setup and trim repeated explanations.</p></div>
+<p class="small-copy" style="margin-top:23px" data-edit>Adaptation preserves the source mechanism. Original writing transfers it into a new situation.</p></div><p class="source">Implementation: humor_data.py, humor_generation.py and humor_craft.py · Retrieval and prompts, without generator fine-tuning</p>
+<footer><span>OpenMic · Midterm Review</span><span>znjq · 05 / 10</span></footer></section>
+<!-- Speaker notes: 45 seconds. Follow input, retrieval, five roles, separate review, bounded revision and saved output. Flash drafts. Pro separately audits and rewrites. The quality-loop audit uses 1-5; internal five-role QC uses 0-10. -->
+<section class="slide" data-owner="znjq" data-section="text-generation" aria-label="Generation pipeline">
+<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>Generation pipeline</h2></header>
+
+<div class="content"><p class="input-strip" data-edit>Input: topic, audience and real context</p>
+<p class="retrieval" data-edit>CFunSet training retrieval and reference selection</p>
+<ol class="agents">
+<li><h3 data-edit>Direction</h3><p data-edit>ComedyDirector</p></li>
+<li><h3 data-edit>Audience</h3><p data-edit>AudienceAnalyzer</p></li>
+<li><h3 data-edit>Writing</h3><p data-edit>JokeWriter</p></li>
+<li><h3 data-edit>Delivery</h3><p data-edit>PerformanceCoach</p></li>
+<li class="quality"><h3 data-edit>Quality</h3><p data-edit>QualityController</p></li>
+</ol>
+<p class="audit-line" data-edit>↓ Pro rubric review and fact/continuity checks</p>
+<p class="output-line" data-edit>Output: script, scores, source IDs and quality status</p>
+<p class="feedback-line" data-edit>Pro rewrites the full draft using quoted feedback within a revision budget. We retain the best candidate and record failed attempts.</p></div><p class="source">Draft: deepseek-flash · Audit and rewriting: deepseek-v4-pro · Quality-loop workflow</p>
+<footer><span>OpenMic · Midterm Review</span><span>znjq · 06 / 10</span></footer></section>
+<!-- Speaker notes: 50 seconds. Explain four core rubric dimensions, whole-script review, score anchors and quoted repairs. The implementation also reports realism and checks facts separately. Model scores still require human calibration. -->
+<section class="slide" data-owner="znjq" data-section="text-generation" aria-label="Four core evaluation dimensions">
+<header><p class="eyebrow" data-edit>02 / znjq</p><h2 data-edit>Four core evaluation dimensions</h2></header>
+
+<div class="content evaluation"><p class="lead" data-edit>Pro applies a prompted 1–5 rubric to the full script.</p>
+<table><thead><tr><th>Dimension</th><th>Scoring criteria</th></tr></thead><tbody>
+<tr><td data-edit>Humor</td><td data-edit>A specific, surprising yet understandable turn or response</td></tr>
+<tr><td data-edit>Cultural fit</td><td data-edit>Chinese context, audience knowledge and natural social behavior</td></tr>
+<tr><td data-edit>Spoken naturalness</td><td data-edit>Idiomatic phrasing that sounds natural when spoken aloud</td></tr>
+<tr><td data-edit>Structure</td><td data-edit>Whole-story coherence, reveal timing and useful callbacks</td></tr>
+</tbody></table>
+<div class="takeaway" data-edit>Blocking issues require an original quote, a reason and a repair.</div>
+<p class="small-copy" data-edit>Humor: 3 = understandable but weak. 4 = a specific comic turn. Realism has a separate check. Human calibration remains necessary.</p></div><p class="source">Prompted scores, distinct from CFunSet binary labels · Implementation: humor_quality_loop.py</p>
+<footer><span>OpenMic · Midterm Review</span><span>znjq · 07 / 10</span></footer></section>
 <!-- === csw / jyb: TODO / Speech generation === -->
 <section class="slide" data-owner="csw / jyb" aria-label="Speech generation">
 <header><p class="eyebrow" data-edit>03 / csw / jyb</p><h2 data-edit>Speech generation</h2></header>
 <div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>csw / jyb</p><p class="hint" data-edit>CosyVoice2 · Voice · Speed · 16 kHz WAV</p></div>
-<footer><span>OpenMic · Midterm Review</span><span>csw / jyb · 05 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>csw / jyb · 08 / 10</span></footer>
 </section>
 <!-- === szq: TODO / Evaluation & current progress === -->
 <section class="slide" data-owner="szq" aria-label="Evaluation & current progress">
 <header><p class="eyebrow" data-edit>04 / szq</p><h2 data-edit>Evaluation & current progress</h2></header>
 <div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>szq</p><p class="hint" data-edit>TODO: evaluation methods and results</p></div>
-<footer><span>OpenMic · Midterm Review</span><span>szq · 06 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>szq · 09 / 10</span></footer>
 </section>
 <!-- === szq: TODO / Limitations & next steps === -->
 <section class="slide" data-owner="szq" aria-label="Limitations & next steps">
 <header><p class="eyebrow" data-edit>05 / szq</p><h2 data-edit>Limitations & next steps</h2></header>
 <div class="placeholder"><span class="todo" data-edit>TODO</span><p data-edit>szq</p><p class="hint" data-edit>TODO: limitations, next steps and closing</p></div>
-<footer><span>OpenMic · Midterm Review</span><span>szq · 07 / 07</span></footer>
+<footer><span>OpenMic · Midterm Review</span><span>szq · 10 / 10</span></footer>
 </section>
 </main></div>
 <!-- === DECK CHROME === -->

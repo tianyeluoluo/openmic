@@ -10,14 +10,15 @@ and needs no server, build step or network connection.
 | 1 | Team 1234 | Cover |
 | 2 | lyy | Goal; defining humor, writing jokes and delivering them |
 | 3 | lyy | Five-agent architecture, revision loop and TTS flow |
-| 4 | znjq | TODO: content generation |
-| 5 | csw / jyb | TODO: speech generation |
-| 6 | szq | TODO: evaluation and current progress |
-| 7 | szq | TODO: limitations, next steps and closing |
+| 4–7 | znjq | Content generation: whole-story view, prompts, pipeline and rubric |
+| 8 | csw / jyb | TODO: speech generation |
+| 9 | szq | TODO: evaluation and current progress |
+| 10 | szq | TODO: limitations, next steps and closing |
 
 The lyy section describes the local implementation and project goals. The
-3–5 minute duration is a target, not a measured result. The remaining sections
-are placeholders until their owners supply content.
+3–5 minute duration is a target, not a measured result. Slides 4–7 contain the
+three-minute text-generation section. Speech generation and the evaluation/closing
+sections remain placeholders until their owners supply content.
 
 Slide 2 presents our working challenge analysis, not a universal theory of humor.
 Audience ratings and matched text/audio comparisons are proposed validation
@@ -51,6 +52,16 @@ revision limit, and the UI displays the outcome in either case.
 
 ## Task 2 text-generation presentation
 
+The shared [midterm.html](midterm.html) integrates section **02 / znjq** on
+**slides 4–7**, replacing the content-generation placeholder. This is the
+**three-minute** English section following the architecture overview.
+
+For separate rehearsal, open [text_generation_3min.html](text_generation_3min.html).
+Its four slides contain the same text-generation content:
+the whole-story view, prompting, the pipeline and four evaluation dimensions.
+The [English script](text_generation_3min_notes.md), about 300 words, allocates
+40 / 45 / 45 / 50 seconds.
+
 Open [text_generation.html](text_generation.html) for the standalone text-generation section.
 It follows the same white/blue/gray theme, fixed 1920 × 1080 canvas, navigation,
 local editing, **Save HTML**, and print controls. It has no external scripts,
@@ -65,8 +76,8 @@ excerpts retain their original wording.
 - **Evidence:** [release summary](../docs/TASK2_RELEASE.md) and
   [compact development results](../docs/task2_v39_results.json).
 
-This separate file leaves the shared `midterm.html` and other owners' placeholders
-unchanged. An integrator can reuse the text-generation slides when assembling
-the team presentation. The optional training experiments are distinguished from
-DeepSeek generation, and the four-topic model review is distinguished from human
-audience evaluation.
+The nine-slide standalone file remains an extended version. The shared deck
+uses the shorter four-slide section. Other owners' slide content is preserved,
+with page numbers updated for the ten-slide deck. The optional training experiments
+are distinguished from DeepSeek generation, and the four-topic model review is
+distinguished from human audience evaluation.
